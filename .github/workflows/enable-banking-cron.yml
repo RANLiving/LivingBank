@@ -1,0 +1,20 @@
+name: Enable Banking sync cron
+
+on:
+  schedule:
+    # Horários de exemplo (UTC), alinhados por omissão com SyncSchedule.
+    # Ajusta se mudares o agendamento no ecrã "Agendamento" da app.
+    - cron: '0 6 * * *'
+    - cron: '0 12 * * *'
+    - cron: '0 18 * * *'
+    - cron: '0 23 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  trigger-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar endpoint de sincronização
+        run: |
+          curl -sSf -X POST "${{ secrets.LIVINGBANK_API_URL }}/api/sync/external-trigger" \
+            -H "X-Cron-Secret: ${{ secrets.LIVINGBANK_CRON_SECRET }}"

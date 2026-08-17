@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LivingBank</string>
+    <string name="title_activity_main">LivingBank</string>
+    <string name="package_name">com.livingtours.livingbank</string>
+    <string name="custom_url_scheme">com.livingtours.livingbank</string>
+</resources>

@@ -1,0 +1,29 @@
+# .NET
+backend/**/bin/
+backend/**/obj/
+*.user
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+
+# Capacitor / Android
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/android/**/*.apk
+frontend/android/**/*.aab
+frontend/ios/
+
+# Ambiente e segredos
+.env
+.env.local
+backend/LivingBank.Api/appsettings.Development.json
+backend/LivingBank.Api/appsettings.Production.json
+
+# IDE / SO
+.vs/
+.vscode/
+*.swp
+.DS_Store

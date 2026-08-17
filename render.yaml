@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: livingbank-api
+    runtime: docker
+    dockerfilePath: ./backend/LivingBank.Api/Dockerfile
+    dockerContext: ./backend/LivingBank.Api
+    plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__Default
+        sync: false
+      - key: Jwt__Secret
+        sync: false
+      - key: Jwt__Issuer
+        value: LivingBank
+      - key: Jwt__Audience
+        value: LivingBank.Clients
+      - key: EnableBanking__ApplicationId
+        sync: false
+      - key: EnableBanking__PrivateKeyPem
+        sync: false
+      - key: EnableBanking__ExternalCronSecret
+        sync: false
+      - key: EnableBanking__MaxDailySyncsPerAccount
+        value: "4"
+      - key: Seed__AdminUserName
+        sync: false
+      - key: Seed__AdminEmail
+        sync: false
+      - key: Seed__AdminPassword
+        sync: false
+      - key: Cors__AllowedOrigins__0
+        sync: false
