@@ -16,11 +16,17 @@ public class CompaniesController(AppDbContext db, IAuditService auditService) : 
     [HttpGet]
     public async Task<ActionResult<List<CompanyResponse>>> GetAll()
     {
-        var companies = await db.Companies
-            .Select(c => new CompanyResponse(c.Id, c.Name, c.TaxId, c.Address, c.IsActive, c.BankAccounts.Count()))
-            .OrderBy(c => c.Name)
-            .ToListAsync();
-        return Ok(companies);
+        var companies = await db.Companies.OrderBy(c => c.Name).ToListAsync();
+        var counts = await db.BankAccounts
+            .Where(a => a.CompanyId != null)
+            .GroupBy(a => a.CompanyId!.Value)
+            .Select(g => new { CompanyId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.CompanyId, x => x.Count);
+
+        var result = companies.Select(c =>
+            new CompanyResponse(c.Id, c.Name, c.TaxId, c.Address, c.IsActive, counts.GetValueOrDefault(c.Id, 0)));
+
+        return Ok(result);
     }
 
     [HttpPost]
