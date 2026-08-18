@@ -8,6 +8,11 @@ export default function CompaniesPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', taxId: '', address: '' });
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   async function load() {
     const { data } = await api.get<Company[]>('/api/companies');
     setCompanies(data);
@@ -48,6 +53,31 @@ export default function CompaniesPage() {
     }
   }
 
+  function startEdit(c: Company) {
+    setEditingId(c.id);
+    setEditForm({ name: c.name, taxId: c.taxId, address: c.address ?? '' });
+    setEditError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditError(null);
+  }
+
+  async function handleSaveEdit(id: string) {
+    setEditBusy(true);
+    setEditError(null);
+    try {
+      await api.put(`/api/companies/${id}`, editForm);
+      setEditingId(null);
+      await load();
+    } catch (err: any) {
+      setEditError(err?.response?.data?.error ?? 'Falha ao guardar alterações.');
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
   return (
     <div>
       <h1 style={{ fontSize: 24, marginBottom: 16 }}>Empresas</h1>
@@ -74,6 +104,8 @@ export default function CompaniesPage() {
         </form>
       </div>
 
+      {editError && <div className="lb-error-banner">{editError}</div>}
+
       <table className="lb-table">
         <thead>
           <tr>
@@ -86,27 +118,59 @@ export default function CompaniesPage() {
           </tr>
         </thead>
         <tbody>
-          {companies.map((c) => (
-            <tr key={c.id}>
-              <td>{c.name}</td>
-              <td>{c.taxId}</td>
-              <td className="lb-muted">{c.address || '—'}</td>
-              <td>{c.bankAccountCount}</td>
-              <td>
-                <span className={`lb-badge ${c.isActive ? 'lb-badge-success' : 'lb-badge-error'}`}>
-                  {c.isActive ? 'Ativa' : 'Inativa'}
-                </span>
-              </td>
-              <td style={{ display: 'flex', gap: 8 }}>
-                <button className="lb-btn-outline" onClick={() => toggleActive(c)}>
-                  {c.isActive ? 'Desativar' : 'Ativar'}
-                </button>
-                {c.bankAccountCount === 0 && (
-                  <button className="lb-btn-outline" onClick={() => handleDelete(c)}>Eliminar</button>
+          {companies.map((c) => {
+            const isEditing = editingId === c.id;
+            return (
+              <tr key={c.id}>
+                {isEditing ? (
+                  <>
+                    <td>
+                      <input className="lb-input" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+                    </td>
+                    <td>
+                      <input className="lb-input" value={editForm.taxId} onChange={(e) => setEditForm({ ...editForm, taxId: e.target.value })} />
+                    </td>
+                    <td>
+                      <input className="lb-input" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+                    </td>
+                    <td>{c.bankAccountCount}</td>
+                    <td>
+                      <span className={`lb-badge ${c.isActive ? 'lb-badge-success' : 'lb-badge-error'}`}>
+                        {c.isActive ? 'Ativa' : 'Inativa'}
+                      </span>
+                    </td>
+                    <td style={{ display: 'flex', gap: 8 }}>
+                      <button className="lb-btn" disabled={editBusy} onClick={() => handleSaveEdit(c.id)}>
+                        {editBusy ? 'A guardar…' : 'Guardar'}
+                      </button>
+                      <button className="lb-btn-outline" disabled={editBusy} onClick={cancelEdit}>Cancelar</button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td>{c.name}</td>
+                    <td>{c.taxId}</td>
+                    <td className="lb-muted">{c.address || '—'}</td>
+                    <td>{c.bankAccountCount}</td>
+                    <td>
+                      <span className={`lb-badge ${c.isActive ? 'lb-badge-success' : 'lb-badge-error'}`}>
+                        {c.isActive ? 'Ativa' : 'Inativa'}
+                      </span>
+                    </td>
+                    <td style={{ display: 'flex', gap: 8 }}>
+                      <button className="lb-btn-outline" onClick={() => startEdit(c)}>Editar</button>
+                      <button className="lb-btn-outline" onClick={() => toggleActive(c)}>
+                        {c.isActive ? 'Desativar' : 'Ativar'}
+                      </button>
+                      {c.bankAccountCount === 0 && (
+                        <button className="lb-btn-outline" onClick={() => handleDelete(c)}>Eliminar</button>
+                      )}
+                    </td>
+                  </>
                 )}
-              </td>
-            </tr>
-          ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       {companies.length === 0 && <p className="lb-muted">Nenhuma empresa registada.</p>}
