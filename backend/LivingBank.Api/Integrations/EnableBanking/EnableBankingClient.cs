@@ -56,7 +56,7 @@ public class EnableBankingClient : IEnableBankingClient
         var token = new JwtSecurityToken(
             issuer: "enablebanking.com",
             audience: "api.enablebanking.com",
-            claims: [new System.Security.Claims.Claim("iss", _options.ApplicationId)],
+            claims: null,
             notBefore: now,
             expires: now.AddMinutes(5),
             signingCredentials: credentials);
