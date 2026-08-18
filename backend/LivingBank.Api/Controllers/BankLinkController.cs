@@ -56,10 +56,32 @@ public class BankLinkController(
     /// </summary>
     [HttpGet("callback")]
     [AllowAnonymous]
-    public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string? state)
+    public async Task<IActionResult> Callback(
+        [FromQuery] string? code,
+        [FromQuery] string? state,
+        [FromQuery] string? error,
+        [FromQuery(Name = "error_description")] string? errorDescription)
     {
         if (string.IsNullOrWhiteSpace(_options.FrontendCallbackUrl))
             return BadRequest(new { error = "EnableBanking:FrontendCallbackUrl não está configurado no backend." });
+
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            // O banco cancelou/rejeitou o consentimento ou devolveu um erro em vez de "code".
+            var message = !string.IsNullOrWhiteSpace(errorDescription) ? errorDescription
+                : !string.IsNullOrWhiteSpace(error) ? error
+                : "O banco não devolveu autorização (consentimento cancelado ou rejeitado).";
+
+            db.ErrorLogs.Add(new Domain.Entities.ErrorLog
+            {
+                Source = "BankLink.Callback",
+                Message = message,
+                Path = "/api/bank-link/callback"
+            });
+            await db.SaveChangesAsync();
+
+            return Redirect($"{_options.FrontendCallbackUrl}?error={Uri.EscapeDataString(message)}");
+        }
 
         try
         {
