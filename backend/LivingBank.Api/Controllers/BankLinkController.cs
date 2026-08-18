@@ -7,6 +7,7 @@ using LivingBank.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
 namespace LivingBank.Api.Controllers;
@@ -21,9 +22,11 @@ public class BankLinkController(
     IEnableBankingClient enableBankingClient,
     IOptions<EnableBankingOptions> options,
     AppDbContext db,
-    IAuditService auditService) : ControllerBase
+    IAuditService auditService,
+    IMemoryCache cache) : ControllerBase
 {
     private readonly EnableBankingOptions _options = options.Value;
+    private static string CacheKey(string sessionId) => $"eb-session-accounts:{sessionId}";
 
     [HttpGet("aspsps")]
     [Authorize(Policy = Permissions.ManageBankAccounts)]
@@ -61,6 +64,8 @@ public class BankLinkController(
         try
         {
             var session = await enableBankingClient.CreateSessionAsync(code);
+            cache.Set(CacheKey(session.SessionId), session.Accounts, TimeSpan.FromMinutes(30));
+
             var target = $"{_options.FrontendCallbackUrl}?sessionId={Uri.EscapeDataString(session.SessionId)}&state={Uri.EscapeDataString(state ?? "")}";
             return Redirect(target);
         }
@@ -81,8 +86,18 @@ public class BankLinkController(
     [Authorize(Policy = Permissions.ManageBankAccounts)]
     public async Task<ActionResult<SessionAccountsResponse>> GetSessionAccounts(string sessionId)
     {
-        var accounts = await enableBankingClient.GetAccountsAsync(sessionId);
-        var options = accounts.Accounts.Select(a => new LinkedAccountOption(
+        List<Integrations.EnableBanking.EbAccountDto> accountDtos;
+        if (cache.TryGetValue(CacheKey(sessionId), out List<Integrations.EnableBanking.EbAccountDto>? cached) && cached is not null)
+        {
+            accountDtos = cached;
+        }
+        else
+        {
+            var accounts = await enableBankingClient.GetAccountsAsync(sessionId);
+            accountDtos = accounts.Accounts;
+        }
+
+        var options = accountDtos.Select(a => new LinkedAccountOption(
             a.Uid, a.AccountId?.Iban, a.Name ?? a.Product, a.Currency));
         return Ok(new SessionAccountsResponse(sessionId, options.ToList()));
     }

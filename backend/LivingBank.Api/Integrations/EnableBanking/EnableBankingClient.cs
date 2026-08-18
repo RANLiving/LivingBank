@@ -90,25 +90,31 @@ public class EnableBankingClient : IEnableBankingClient
         await EnsureSuccessAsync(sessionResponse, ct);
         var session = await sessionResponse.Content.ReadFromJsonAsync<EbSessionResponse>(cancellationToken: ct) ?? new EbSessionResponse();
 
-        if (session.AccountsRaw.ValueKind != JsonValueKind.Array || session.AccountsRaw.GetArrayLength() == 0)
-            return new EbAccountsResponse();
+        var accounts = await ResolveAccountsAsync(session.AccountsRaw, ct);
+        return new EbAccountsResponse { Accounts = accounts };
+    }
 
-        // Se o primeiro elemento já é um objeto completo, usa-o diretamente.
-        var first = session.AccountsRaw[0];
-        if (first.ValueKind == JsonValueKind.Object)
+    /// <summary>
+    /// O campo "accounts" varia consoante o endpoint: pode vir como lista de objetos de
+    /// conta completos, ou apenas como lista de UIDs (string) — neste segundo caso vai-se
+    /// buscar cada conta individualmente a GET /accounts/{uid}.
+    /// </summary>
+    private async Task<List<EbAccountDto>> ResolveAccountsAsync(JsonElement raw, CancellationToken ct)
+    {
+        if (raw.ValueKind != JsonValueKind.Array || raw.GetArrayLength() == 0)
+            return [];
+
+        if (raw[0].ValueKind == JsonValueKind.Object)
         {
-            var accountsFromObjects = session.AccountsRaw
-                .EnumerateArray()
+            return raw.EnumerateArray()
                 .Select(el => el.Deserialize<EbAccountDto>())
                 .Where(a => a is not null)
                 .Select(a => a!)
                 .ToList();
-            return new EbAccountsResponse { Accounts = accountsFromObjects };
         }
 
-        // Caso contrário são apenas UIDs (string) — vai buscar cada conta individualmente.
         var accounts = new List<EbAccountDto>();
-        foreach (var el in session.AccountsRaw.EnumerateArray())
+        foreach (var el in raw.EnumerateArray())
         {
             var uid = el.GetString();
             if (string.IsNullOrEmpty(uid)) continue;
@@ -119,7 +125,7 @@ public class EnableBankingClient : IEnableBankingClient
             var acc = await accResponse.Content.ReadFromJsonAsync<EbAccountDto>(cancellationToken: ct);
             if (acc is not null) accounts.Add(acc);
         }
-        return new EbAccountsResponse { Accounts = accounts };
+        return accounts;
     }
 
     public async Task<EbBalancesResponse> GetBalancesAsync(string accountUid, CancellationToken ct = default)
@@ -182,7 +188,11 @@ public class EnableBankingClient : IEnableBankingClient
         ApplyAuthHeader();
         var response = await _http.PostAsJsonAsync("/sessions", new { code = authorizationCode }, ct);
         await EnsureSuccessAsync(response, ct);
-        var result = await response.Content.ReadFromJsonAsync<EbSessionResponse>(cancellationToken: ct);
-        return result ?? new EbSessionResponse();
+        var result = await response.Content.ReadFromJsonAsync<EbSessionResponse>(cancellationToken: ct) ?? new EbSessionResponse();
+
+        // A criação da sessão já devolve as contas completas — resolve-as aqui, porque um
+        // GET /sessions/{id} posterior pode devolver a lista vazia para a mesma sessão.
+        result.Accounts = await ResolveAccountsAsync(result.AccountsRaw, ct);
+        return result;
     }
 }

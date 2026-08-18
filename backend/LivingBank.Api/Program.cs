@@ -100,6 +100,7 @@ builder.Services.AddQuartz(q =>
 });
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
+builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 

@@ -152,4 +152,8 @@ public class EbSessionResponse
 
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;
+
+    /// <summary>Preenchido pelo EnableBankingClient a partir de AccountsRaw — não vem do JSON.</summary>
+    [JsonIgnore]
+    public List<EbAccountDto> Accounts { get; set; } = [];
 }
