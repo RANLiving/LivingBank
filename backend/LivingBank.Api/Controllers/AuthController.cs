@@ -31,13 +31,14 @@ public class AuthController(
         }
 
         var roles = await userManager.GetRolesAsync(user);
-        var token = jwtTokenService.GenerateToken(user, roles);
+        var passwordExpired = PasswordPolicy.IsExpired(user, roles);
+        var token = jwtTokenService.GenerateToken(user, roles, passwordExpired);
 
         user.LastLoginAt = DateTimeOffset.UtcNow;
         await userManager.UpdateAsync(user);
         await auditService.LogAsync(user.Id, "Auth.Login");
 
-        return Ok(new LoginResponse(token, DateTime.UtcNow.AddMinutes(60), user.UserName!, user.FullName, roles));
+        return Ok(new LoginResponse(token, DateTime.UtcNow.AddMinutes(60), user.UserName!, user.FullName, roles, passwordExpired));
     }
 
     [HttpGet("me")]
@@ -49,6 +50,29 @@ public class AuthController(
         if (user is null) return NotFound();
 
         var roles = await userManager.GetRolesAsync(user);
-        return Ok(new UserResponse(user.Id, user.UserName!, user.Email!, user.FullName, user.IsActive, roles, user.LastLoginAt));
+        var passwordExpired = PasswordPolicy.IsExpired(user, roles);
+        return Ok(new UserResponse(user.Id, user.UserName!, user.Email!, user.FullName, user.IsActive, roles, user.LastLoginAt, passwordExpired));
+    }
+
+    /// <summary>Qualquer utilizador autenticado pode mudar a própria password a qualquer momento.</summary>
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<ActionResult<LoginResponse>> ChangePassword(ChangePasswordRequest request)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
+        var user = await userManager.FindByIdAsync(userId);
+        if (user is null) return NotFound();
+
+        var result = await userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!result.Succeeded)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+
+        user.PasswordChangedAt = DateTimeOffset.UtcNow;
+        await userManager.UpdateAsync(user);
+        await auditService.LogAsync(user.Id, "Auth.ChangePassword");
+
+        var roles = await userManager.GetRolesAsync(user);
+        var token = jwtTokenService.GenerateToken(user, roles, passwordExpired: false);
+        return Ok(new LoginResponse(token, DateTime.UtcNow.AddMinutes(60), user.UserName!, user.FullName, roles, false));
     }
 }

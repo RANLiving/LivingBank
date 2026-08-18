@@ -6,6 +6,7 @@ export interface User {
   isActive: boolean;
   roles: string[];
   lastLoginAt: string | null;
+  passwordExpired: boolean;
 }
 
 export interface LoginResponse {
@@ -14,6 +15,7 @@ export interface LoginResponse {
   userName: string;
   fullName: string;
   roles: string[];
+  passwordExpired: boolean;
 }
 
 export interface BankAccount {

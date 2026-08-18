@@ -10,21 +10,22 @@ namespace LivingBank.Api.Services;
 
 public interface IJwtTokenService
 {
-    string GenerateToken(ApplicationUser user, IList<string> roles);
+    string GenerateToken(ApplicationUser user, IList<string> roles, bool passwordExpired);
 }
 
 public class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenService
 {
     private readonly JwtOptions _options = options.Value;
 
-    public string GenerateToken(ApplicationUser user, IList<string> roles)
+    public string GenerateToken(ApplicationUser user, IList<string> roles, bool passwordExpired)
     {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.UserName ?? user.Email ?? user.Id.ToString()),
             new(ClaimTypes.Email, user.Email ?? ""),
-            new("full_name", user.FullName)
+            new("full_name", user.FullName),
+            new("pwd_expired", passwordExpired ? "true" : "false")
         };
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 

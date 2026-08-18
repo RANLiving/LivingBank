@@ -12,6 +12,7 @@ import LinkAccountPage from './pages/LinkAccountPage';
 import LinkCallbackPage from './pages/LinkCallbackPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
+import ChangePasswordPage from './pages/ChangePasswordPage';
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           }
         >
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route path="/accounts/:id" element={<AccountDetailPage />} />
           <Route
             path="/link"

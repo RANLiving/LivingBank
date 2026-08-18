@@ -5,9 +5,10 @@ import type { LoginResponse, User } from '../types';
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (userName: string, password: string) => Promise<void>;
+  login: (userName: string, password: string) => Promise<boolean>;
   logout: () => void;
   hasRole: (...roles: string[]) => boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -40,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await api.post<LoginResponse>('/api/auth/login', { userName, password });
     setStoredToken(data.token);
     await loadMe();
+    return data.passwordExpired;
   }
 
   function logout() {
@@ -53,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, hasRole }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, hasRole, refreshUser: loadMe }}>
       {children}
     </AuthContext.Provider>
   );

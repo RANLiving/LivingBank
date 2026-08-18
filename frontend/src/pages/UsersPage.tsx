@@ -83,6 +83,7 @@ export default function UsersPage() {
             <th>Email</th>
             <th>Roles</th>
             <th>Estado</th>
+            <th>Password</th>
             <th>Último login</th>
             <th></th>
           </tr>
@@ -99,11 +100,18 @@ export default function UsersPage() {
                   {u.isActive ? 'Ativo' : 'Inativo'}
                 </span>
               </td>
+              <td>
+                {u.passwordExpired && <span className="lb-badge lb-badge-error">Expirada</span>}
+              </td>
               <td>{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('pt-PT') : '—'}</td>
               <td>
-                <button className="lb-btn-outline" onClick={() => toggleActive(u)}>
-                  {u.isActive ? 'Desativar' : 'Ativar'}
-                </button>
+                {u.roles.includes('Admin') ? (
+                  <span className="lb-muted">—</span>
+                ) : (
+                  <button className="lb-btn-outline" onClick={() => toggleActive(u)}>
+                    {u.isActive ? 'Desativar' : 'Ativar'}
+                  </button>
+                )}
               </td>
             </tr>
           ))}

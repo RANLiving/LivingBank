@@ -23,6 +23,7 @@ export default function Layout() {
           {hasRole('Admin') && <NavLink to="/users">Utilizadores</NavLink>}
           {hasRole('Admin') && <NavLink to="/logs">Logs</NavLink>}
           {hasRole('Admin', 'Manager') && <NavLink to="/schedule">Agendamento</NavLink>}
+          <NavLink to="/change-password">Mudar password</NavLink>
           <span className="lb-muted">{user?.fullName}</span>
           <button className="lb-btn-outline" onClick={handleLogout}>Sair</button>
         </nav>

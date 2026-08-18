@@ -20,7 +20,7 @@ public class UsersController(UserManager<ApplicationUser> userManager, IAuditSer
         foreach (var u in users)
         {
             var roles = await userManager.GetRolesAsync(u);
-            result.Add(new UserResponse(u.Id, u.UserName!, u.Email!, u.FullName, u.IsActive, roles, u.LastLoginAt));
+            result.Add(new UserResponse(u.Id, u.UserName!, u.Email!, u.FullName, u.IsActive, roles, u.LastLoginAt, PasswordPolicy.IsExpired(u, roles)));
         }
         return Ok(result);
     }
@@ -36,7 +36,8 @@ public class UsersController(UserManager<ApplicationUser> userManager, IAuditSer
             UserName = request.UserName,
             Email = request.Email,
             FullName = request.FullName,
-            IsActive = true
+            IsActive = true,
+            PasswordChangedAt = DateTimeOffset.UtcNow
         };
 
         var result = await userManager.CreateAsync(user, request.Password);
@@ -46,7 +47,7 @@ public class UsersController(UserManager<ApplicationUser> userManager, IAuditSer
         await userManager.AddToRoleAsync(user, request.Role);
         await auditService.LogAsync(GetCurrentUserId(), "User.Create", $"novo utilizador={request.UserName}, role={request.Role}");
 
-        return Ok(new UserResponse(user.Id, user.UserName!, user.Email!, user.FullName, user.IsActive, [request.Role], null));
+        return Ok(new UserResponse(user.Id, user.UserName!, user.Email!, user.FullName, user.IsActive, [request.Role], null, false));
     }
 
     [HttpPatch("{id}/deactivate")]
@@ -54,6 +55,10 @@ public class UsersController(UserManager<ApplicationUser> userManager, IAuditSer
     {
         var user = await userManager.FindByIdAsync(id.ToString());
         if (user is null) return NotFound();
+
+        var roles = await userManager.GetRolesAsync(user);
+        if (roles.Contains(Roles.Admin))
+            return BadRequest(new { error = "O utilizador Admin não pode ser desativado." });
 
         user.IsActive = false;
         await userManager.UpdateAsync(user);

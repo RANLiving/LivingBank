@@ -21,9 +21,9 @@ export default function LoginPage() {
     setError(null);
     setBusy(true);
     try {
-      await login(userName, password);
+      const passwordExpired = await login(userName, password);
       await saveBiometricCredentials(userName, password);
-      navigate('/');
+      navigate(passwordExpired ? '/change-password' : '/');
     } catch {
       setError('Utilizador ou palavra-passe inválidos.');
     } finally {
@@ -40,8 +40,8 @@ export default function LoginPage() {
         setError('Autenticação biométrica não disponível ou sem credenciais guardadas.');
         return;
       }
-      await login(creds.userName, creds.password);
-      navigate('/');
+      const passwordExpired = await login(creds.userName, creds.password);
+      navigate(passwordExpired ? '/change-password' : '/');
     } catch {
       setError('Falha na autenticação biométrica.');
     } finally {

@@ -9,5 +9,8 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? LastLoginAt { get; set; }
 
+    // Usado para forçar troca de password a cada 60 dias (exceto utilizadores com role Admin).
+    public DateTimeOffset PasswordChangedAt { get; set; } = DateTimeOffset.UtcNow;
+
     public ICollection<UserBankAccountAccess> BankAccountAccesses { get; set; } = new List<UserBankAccountAccess>();
 }

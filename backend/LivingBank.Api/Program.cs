@@ -135,6 +135,7 @@ app.UseCors("Frontend");
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<PasswordExpiryMiddleware>();
 app.UseMiddleware<AuditLoggingMiddleware>();
 
 app.MapControllers();
