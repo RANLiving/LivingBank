@@ -13,4 +13,10 @@ public class EnableBankingOptions
 
     // Limite diário de leituras por conta (requisito de negócio)
     public int MaxDailySyncsPerAccount { get; set; } = 4;
+
+    // URL público do próprio backend para onde o ASPSP redireciona após o consentimento (ex: https://livingbank-api.onrender.com/api/bank-link/callback)
+    public string RedirectUrl { get; set; } = string.Empty;
+
+    // Página do frontend para onde reencaminhar o utilizador depois de trocarmos o code pela sessão (ex: https://living-bank.vercel.app/link/callback)
+    public string FrontendCallbackUrl { get; set; } = string.Empty;
 }

@@ -110,3 +110,45 @@ public class EbTransactionsResponse : EbListResponse<EbTransactionDto>
     [JsonPropertyName("transactions")]
     public List<EbTransactionDto> Transactions { get; set; } = [];
 }
+
+public class EbAspspDto
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("country")]
+    public string Country { get; set; } = string.Empty;
+
+    [JsonPropertyName("logo")]
+    public string? Logo { get; set; }
+
+    [JsonPropertyName("maximum_consent_validity")]
+    public int? MaximumConsentValidity { get; set; }
+}
+
+public class EbAspspsResponse
+{
+    [JsonPropertyName("aspsps")]
+    public List<EbAspspDto> Aspsps { get; set; } = [];
+}
+
+public class EbAuthorizeResponse
+{
+    [JsonPropertyName("url")]
+    public string Url { get; set; } = string.Empty;
+}
+
+public class EbSessionResponse
+{
+    [JsonPropertyName("session_id")]
+    public string SessionId { get; set; } = string.Empty;
+
+    [JsonPropertyName("accounts")]
+    public List<string> AccountUids { get; set; } = [];
+
+    [JsonPropertyName("accounts_data")]
+    public List<EbAccountDto>? AccountsData { get; set; }
+
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = string.Empty;
+}

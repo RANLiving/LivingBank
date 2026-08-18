@@ -14,6 +14,9 @@ public interface IEnableBankingClient
     Task<EbAccountsResponse> GetAccountsAsync(string sessionId, CancellationToken ct = default);
     Task<EbBalancesResponse> GetBalancesAsync(string accountUid, CancellationToken ct = default);
     Task<EbTransactionsResponse> GetTransactionsAsync(string accountUid, DateOnly? dateFrom, string? continuationKey, CancellationToken ct = default);
+    Task<List<EbAspspDto>> GetAspspsAsync(string country, CancellationToken ct = default);
+    Task<string> StartAuthorizationAsync(string aspspName, string aspspCountry, string redirectUrl, string state, int validDays, CancellationToken ct = default);
+    Task<EbSessionResponse> CreateSessionAsync(string authorizationCode, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -66,10 +69,23 @@ public class EnableBankingClient : IEnableBankingClient
     public async Task<EbAccountsResponse> GetAccountsAsync(string sessionId, CancellationToken ct = default)
     {
         ApplyAuthHeader();
-        var response = await _http.GetAsync($"/sessions/{sessionId}", ct);
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<EbAccountsResponse>(cancellationToken: ct);
-        return result ?? new EbAccountsResponse();
+        var sessionResponse = await _http.GetAsync($"/sessions/{sessionId}", ct);
+        sessionResponse.EnsureSuccessStatusCode();
+        var session = await sessionResponse.Content.ReadFromJsonAsync<EbSessionResponse>(cancellationToken: ct) ?? new EbSessionResponse();
+
+        if (session.AccountsData is { Count: > 0 })
+            return new EbAccountsResponse { Accounts = session.AccountsData };
+
+        var accounts = new List<EbAccountDto>();
+        foreach (var uid in session.AccountUids)
+        {
+            ApplyAuthHeader();
+            var accResponse = await _http.GetAsync($"/accounts/{uid}", ct);
+            if (!accResponse.IsSuccessStatusCode) continue;
+            var acc = await accResponse.Content.ReadFromJsonAsync<EbAccountDto>(cancellationToken: ct);
+            if (acc is not null) accounts.Add(acc);
+        }
+        return new EbAccountsResponse { Accounts = accounts };
     }
 
     public async Task<EbBalancesResponse> GetBalancesAsync(string accountUid, CancellationToken ct = default)
@@ -92,5 +108,47 @@ public class EnableBankingClient : IEnableBankingClient
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<EbTransactionsResponse>(cancellationToken: ct);
         return result ?? new EbTransactionsResponse();
+    }
+
+    public async Task<List<EbAspspDto>> GetAspspsAsync(string country, CancellationToken ct = default)
+    {
+        ApplyAuthHeader();
+        var response = await _http.GetAsync($"/aspsps?country={Uri.EscapeDataString(country)}", ct);
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<EbAspspsResponse>(cancellationToken: ct);
+        return result?.Aspsps ?? [];
+    }
+
+    /// <summary>
+    /// Inicia o fluxo de consentimento PSD2: devolve o URL para onde o utilizador deve ser
+    /// redirecionado para autenticar e autorizar no banco (ASPSP). Depois de autorizar, o
+    /// ASPSP redireciona de volta para <paramref name="redirectUrl"/> com "?code=...&amp;state=...".
+    /// </summary>
+    public async Task<string> StartAuthorizationAsync(string aspspName, string aspspCountry, string redirectUrl, string state, int validDays, CancellationToken ct = default)
+    {
+        ApplyAuthHeader();
+        var payload = new
+        {
+            access = new { valid_until = DateTime.UtcNow.AddDays(validDays).ToString("o") },
+            aspsp = new { name = aspspName, country = aspspCountry },
+            state,
+            redirect_url = redirectUrl,
+            psu_type = "personal"
+        };
+
+        var response = await _http.PostAsJsonAsync("/auth", payload, ct);
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<EbAuthorizeResponse>(cancellationToken: ct);
+        return result?.Url ?? throw new InvalidOperationException("Enable Banking não devolveu um URL de autorização.");
+    }
+
+    /// <summary>Troca o "code" recebido no callback por uma sessão válida com a lista de contas autorizadas.</summary>
+    public async Task<EbSessionResponse> CreateSessionAsync(string authorizationCode, CancellationToken ct = default)
+    {
+        ApplyAuthHeader();
+        var response = await _http.PostAsJsonAsync("/sessions", new { code = authorizationCode }, ct);
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<EbSessionResponse>(cancellationToken: ct);
+        return result ?? new EbSessionResponse();
     }
 }

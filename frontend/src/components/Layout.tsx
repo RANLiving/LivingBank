@@ -16,6 +16,7 @@ export default function Layout() {
         <NavLink to="/" className="lb-brand">LivingBank</NavLink>
         <nav className="lb-nav">
           <NavLink to="/" end>Contas</NavLink>
+          {hasRole('Admin', 'Manager') && <NavLink to="/link">Ligar conta</NavLink>}
           {hasRole('Admin') && <NavLink to="/users">Utilizadores</NavLink>}
           {hasRole('Admin') && <NavLink to="/logs">Logs</NavLink>}
           {hasRole('Admin', 'Manager') && <NavLink to="/schedule">Agendamento</NavLink>}
