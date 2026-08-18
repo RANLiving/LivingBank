@@ -52,6 +52,7 @@ export default function LoginPage() {
   return (
     <div className="lb-login-wrap">
       <div className="lb-login-card">
+        <img src="/logo.ico" alt="" width={40} height={40} style={{ marginBottom: 8 }} />
         <h1 style={{ fontSize: 28, marginBottom: 4 }}>LivingBank</h1>
         <p className="lb-muted" style={{ marginBottom: 24 }}>Iniciar sessão</p>
 

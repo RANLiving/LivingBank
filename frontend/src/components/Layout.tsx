@@ -13,7 +13,10 @@ export default function Layout() {
   return (
     <div className="lb-app">
       <header className="lb-topbar">
-        <NavLink to="/" className="lb-brand">LivingBank</NavLink>
+        <NavLink to="/" className="lb-brand">
+          <img src="/logo.ico" alt="" width={24} height={24} style={{ verticalAlign: 'middle', marginRight: 8 }} />
+          LivingBank
+        </NavLink>
         <nav className="lb-nav">
           <NavLink to="/" end>Contas</NavLink>
           {hasRole('Admin', 'Manager') && <NavLink to="/link">Ligar conta</NavLink>}
