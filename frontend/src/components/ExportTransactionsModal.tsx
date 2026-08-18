@@ -38,8 +38,9 @@ export default function ExportTransactionsModal({ accountId, onClose }: { accoun
       );
 
       const disposition = response.headers['content-disposition'] as string | undefined;
-      const match = disposition?.match(/filename="?([^"]+)"?/);
-      const fileName = match?.[1] ?? 'movimentos.xlsx';
+      // O header pode vir sem aspas e com "filename*=UTF-8''..." a seguir — apanhar só até ";".
+      const match = disposition?.match(/filename="([^"]+)"|filename=([^;]+)/);
+      const fileName = match?.[1] ?? match?.[2] ?? 'movimentos.xlsx';
 
       const url = URL.createObjectURL(response.data);
       const link = document.createElement('a');
