@@ -2,10 +2,9 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using LivingBank.Api.Configuration;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace LivingBank.Api.Integrations.EnableBanking;
 
@@ -42,6 +41,13 @@ public class EnableBankingClient : IEnableBankingClient
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
     }
 
+    /// <summary>
+    /// Assina o JWT de autenticação da aplicação manualmente (RS256), em vez de usar
+    /// JwtSecurityTokenHandler/SigningCredentials: o pipeline de assinatura do
+    /// Microsoft.IdentityModel.Tokens toma posse da chave RSA fornecida e dispõe-a após o
+    /// primeiro uso, o que rebenta em pedidos seguintes ("Cannot access a disposed object
+    /// RSAOpenSsl"). Assinar à mão evita essa gestão de ciclo de vida por completo.
+    /// </summary>
     private string BuildApplicationJwt()
     {
         if (string.IsNullOrWhiteSpace(_options.PrivateKeyPem))
@@ -49,22 +55,26 @@ public class EnableBankingClient : IEnableBankingClient
 
         using var rsa = RSA.Create();
         rsa.ImportFromPem(_options.PrivateKeyPem);
-        var signingKey = new RsaSecurityKey(rsa) { KeyId = _options.ApplicationId };
-        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.RsaSha256);
 
-        var now = DateTime.UtcNow;
-        var token = new JwtSecurityToken(
-            issuer: "enablebanking.com",
-            audience: "api.enablebanking.com",
-            claims: null,
-            notBefore: now,
-            expires: now.AddMinutes(5),
-            signingCredentials: credentials);
+        var now = DateTimeOffset.UtcNow;
+        var header = JsonSerializer.Serialize(new { alg = "RS256", typ = "JWT", kid = _options.ApplicationId });
+        var payload = JsonSerializer.Serialize(new
+        {
+            iss = "enablebanking.com",
+            aud = "api.enablebanking.com",
+            iat = now.ToUnixTimeSeconds(),
+            nbf = now.ToUnixTimeSeconds(),
+            exp = now.AddMinutes(5).ToUnixTimeSeconds()
+        });
 
-        token.Header["kid"] = _options.ApplicationId;
+        var signingInput = $"{Base64UrlEncode(Encoding.UTF8.GetBytes(header))}.{Base64UrlEncode(Encoding.UTF8.GetBytes(payload))}";
+        var signature = rsa.SignData(Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return $"{signingInput}.{Base64UrlEncode(signature)}";
     }
+
+    private static string Base64UrlEncode(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
     public async Task<EbAccountsResponse> GetAccountsAsync(string sessionId, CancellationToken ct = default)
     {
