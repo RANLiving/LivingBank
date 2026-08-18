@@ -7,7 +7,11 @@ namespace LivingBank.Api.Services;
 
 public interface IEmailSender
 {
-    Task SendAsync(string toEmail, string subject, string htmlBody, CancellationToken ct = default);
+    /// <summary>
+    /// Envia como multipart/alternative (texto simples + HTML) — melhora a pontuação de spam
+    /// face a email só-HTML. plainTextBody é opcional; se omitido, deriva-se do HTML.
+    /// </summary>
+    Task SendAsync(string toEmail, string subject, string htmlBody, string? plainTextBody = null, CancellationToken ct = default);
 }
 
 /// <summary>Envia email via SMTP (Gmail SMTP com App Password, ou outro relay compatível).</summary>
@@ -15,7 +19,7 @@ public class SmtpEmailSender(IOptions<EmailOptions> options, ILogger<SmtpEmailSe
 {
     private readonly EmailOptions _options = options.Value;
 
-    public async Task SendAsync(string toEmail, string subject, string htmlBody, CancellationToken ct = default)
+    public async Task SendAsync(string toEmail, string subject, string htmlBody, string? plainTextBody = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(_options.SmtpUser) || string.IsNullOrWhiteSpace(_options.SmtpPassword))
         {
@@ -29,14 +33,19 @@ public class SmtpEmailSender(IOptions<EmailOptions> options, ILogger<SmtpEmailSe
             Credentials = new NetworkCredential(_options.SmtpUser, _options.SmtpPassword)
         };
 
+        var plainText = plainTextBody ?? StripHtml(htmlBody);
+
         using var message = new MailMessage
         {
             From = new MailAddress(_options.FromAddress, _options.FromName),
             Subject = subject,
-            Body = htmlBody,
-            IsBodyHtml = true
+            Body = plainText,
+            IsBodyHtml = false
         };
         message.To.Add(toEmail);
+
+        var htmlView = AlternateView.CreateAlternateViewFromString(htmlBody, System.Text.Encoding.UTF8, "text/html");
+        message.AlternateViews.Add(htmlView);
 
         try
         {
@@ -57,4 +66,7 @@ public class SmtpEmailSender(IOptions<EmailOptions> options, ILogger<SmtpEmailSe
             throw new InvalidOperationException(detail, ex);
         }
     }
+
+    private static string StripHtml(string html) =>
+        System.Text.RegularExpressions.Regex.Replace(html, "<.*?>", "").Trim();
 }

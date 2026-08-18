@@ -49,7 +49,20 @@ public class UserInviteService(
             <p>— LivingBank</p>
             """;
 
-        await emailSender.SendAsync(user.Email!, "LivingBank — definir a tua password", html, ct);
+        var plainText = $"""
+            Olá {user.FullName},
+
+            Foi criada (ou reiniciada) uma conta para ti na LivingBank.
+
+            Para poderes entrar, define a tua password através do link abaixo:
+            {link}
+
+            Este link só pode ser usado uma vez. Se não esperavas este email, ignora-o.
+
+            — LivingBank
+            """;
+
+        await emailSender.SendAsync(user.Email!, "LivingBank — definir a tua password", html, plainText, ct);
     }
 
     private static string GenerateRandomPassword()
