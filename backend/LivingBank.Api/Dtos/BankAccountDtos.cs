@@ -22,9 +22,15 @@ public record BalanceResponse(long Id, string BalanceType, decimal Amount, strin
 
 public record TransactionResponse(
     long Id, decimal Amount, string Currency, string CreditDebitIndicator,
-    DateOnly BookingDate, DateOnly? ValueDate, string Description, string? CounterpartyName, string Status);
+    DateOnly BookingDate, DateOnly? ValueDate, string Description, string? CounterpartyName, string Status,
+    bool IsExported);
 
 public record SyncScheduleRequest(TimeOnly Time1, TimeOnly Time2, TimeOnly Time3, TimeOnly Time4);
+
+public enum ExportScope { All, NotExported }
+public enum ExportPeriod { Custom, PreviousMonth, PreviousQuarter, PreviousSemester, CurrentYear }
+
+public record ExportTransactionsRequest(ExportScope Scope, ExportPeriod Period, DateOnly? From, DateOnly? To);
 
 public record SyncLogResponse(
     long Id, Guid BankAccountId, string SyncTrigger, string Status, string? ErrorMessage,

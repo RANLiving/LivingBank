@@ -20,4 +20,8 @@ public class Transaction
     public string Status { get; set; } = "booked"; // booked ou pending
 
     public DateTimeOffset FetchedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    // Movimentos nunca são eliminados da base de dados — só marcados como exportados.
+    public bool IsExported { get; set; } = false;
+    public DateTimeOffset? ExportedAt { get; set; }
 }

@@ -50,6 +50,7 @@ export interface Transaction {
   description: string;
   counterpartyName: string | null;
   status: string;
+  isExported: boolean;
 }
 
 export interface SyncLog {

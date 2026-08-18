@@ -11,7 +11,7 @@ namespace LivingBank.Api.Controllers;
 [ApiController]
 [Route("api/bank-accounts")]
 [Authorize]
-public class BankAccountsController(AppDbContext db, IAuditService auditService) : ControllerBase
+public class BankAccountsController(AppDbContext db, IAuditService auditService, ITransactionExportService exportService) : ControllerBase
 {
     // Prioridade de tipos de saldo do Enable Banking (ISO 20022) para escolher qual mostrar
     // como "saldo atual" — closing booked é o saldo contabilístico fechado do dia anterior,
@@ -124,10 +124,22 @@ public class BankAccountsController(AppDbContext db, IAuditService auditService)
             .OrderByDescending(t => t.BookingDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(t => new TransactionResponse(t.Id, t.Amount, t.Currency, t.CreditDebitIndicator, t.BookingDate, t.ValueDate, t.Description, t.CounterpartyName, t.Status))
+            .Select(t => new TransactionResponse(t.Id, t.Amount, t.Currency, t.CreditDebitIndicator, t.BookingDate, t.ValueDate, t.Description, t.CounterpartyName, t.Status, t.IsExported))
             .ToListAsync();
 
         return Ok(transactions);
+    }
+
+    /// <summary>
+    /// Gera o Excel dos movimentos do período/âmbito escolhido e marca-os como exportados.
+    /// Os movimentos nunca são eliminados da base de dados — a exportação é apenas uma marca.
+    /// </summary>
+    [HttpPost("{id}/transactions/export")]
+    public async Task<IActionResult> ExportTransactions(Guid id, ExportTransactionsRequest request)
+    {
+        var (content, fileName) = await exportService.ExportAsync(id, request);
+        await auditService.LogAsync(GetCurrentUserId(), "Transaction.Export", $"conta={id} âmbito={request.Scope} período={request.Period} ficheiro={fileName}");
+        return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 
     private Guid? GetCurrentUserId()
