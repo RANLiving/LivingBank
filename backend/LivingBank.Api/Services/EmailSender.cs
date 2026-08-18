@@ -38,6 +38,23 @@ public class SmtpEmailSender(IOptions<EmailOptions> options, ILogger<SmtpEmailSe
         };
         message.To.Add(toEmail);
 
-        await client.SendMailAsync(message, ct);
+        try
+        {
+            await client.SendMailAsync(message, ct);
+        }
+        catch (Exception ex)
+        {
+            // SmtpException.Message costuma ser genérico ("Failure sending mail.") — a causa
+            // real (auth, ligação, TLS) está sempre na InnerException. Junta tudo para diagnóstico.
+            var detail = ex.Message;
+            var inner = ex.InnerException;
+            while (inner is not null)
+            {
+                detail += $" → {inner.GetType().Name}: {inner.Message}";
+                inner = inner.InnerException;
+            }
+            logger.LogError(ex, "Falha ao enviar email para {ToEmail}: {Detail}", toEmail, detail);
+            throw new InvalidOperationException(detail, ex);
+        }
     }
 }
