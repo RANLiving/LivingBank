@@ -12,5 +12,9 @@ public class ApplicationUser : IdentityUser<Guid>
     // Usado para forçar troca de password a cada 60 dias (exceto utilizadores com role Admin).
     public DateTimeOffset PasswordChangedAt { get; set; } = DateTimeOffset.UtcNow;
 
+    // Falso enquanto o utilizador não definir a própria password através do link enviado
+    // por email (convite inicial ou reenvio forçado) — nesse estado não consegue entrar.
+    public bool PasswordSet { get; set; } = true;
+
     public ICollection<UserBankAccountAccess> BankAccountAccesses { get; set; } = new List<UserBankAccountAccess>();
 }

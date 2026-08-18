@@ -10,9 +10,12 @@ public record CreateUserRequest(
     [Required] string UserName,
     [Required, EmailAddress] string Email,
     [Required] string FullName,
-    [Required, MinLength(8)] string Password,
     [Required] string Role);
 
-public record UserResponse(Guid Id, string UserName, string Email, string FullName, bool IsActive, IList<string> Roles, DateTimeOffset? LastLoginAt, bool PasswordExpired);
+public record UserResponse(Guid Id, string UserName, string Email, string FullName, bool IsActive, IList<string> Roles, DateTimeOffset? LastLoginAt, bool PasswordExpired, bool PasswordSet);
+
+public record UpdateUserRequest([Required, EmailAddress] string Email, [Required] string FullName, [Required] string Role);
 
 public record ChangePasswordRequest([Required] string CurrentPassword, [Required, MinLength(8)] string NewPassword);
+
+public record SetPasswordRequest([Required] Guid UserId, [Required] string Token, [Required, MinLength(8)] string NewPassword);

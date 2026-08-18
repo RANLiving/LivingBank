@@ -7,6 +7,7 @@ export interface User {
   roles: string[];
   lastLoginAt: string | null;
   passwordExpired: boolean;
+  passwordSet: boolean;
 }
 
 export interface LoginResponse {

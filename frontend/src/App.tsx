@@ -14,6 +14,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import CompaniesPage from './pages/CompaniesPage';
+import SetPasswordPage from './pages/SetPasswordPage';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/set-password" element={<SetPasswordPage />} />
         <Route
           element={
             <ProtectedRoute>

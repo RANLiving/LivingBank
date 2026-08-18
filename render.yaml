@@ -28,6 +28,16 @@ services:
         sync: false
       - key: EnableBanking__FrontendCallbackUrl
         sync: false
+      - key: Email__SmtpUser
+        sync: false
+      - key: Email__SmtpPassword
+        sync: false
+      - key: Email__FromAddress
+        sync: false
+      - key: Email__FromName
+        value: LivingBank
+      - key: Email__FrontendBaseUrl
+        sync: false
       - key: Seed__AdminUserName
         sync: false
       - key: Seed__AdminEmail

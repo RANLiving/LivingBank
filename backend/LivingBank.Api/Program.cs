@@ -19,6 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ---- Configuração ----
 builder.Services.Configure<EnableBankingOptions>(builder.Configuration.GetSection(EnableBankingOptions.SectionName));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 
 // ---- Base de dados ----
@@ -37,7 +38,8 @@ builder.Services
     })
     .AddRoles<ApplicationRole>()
     .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager();
+    .AddSignInManager()
+    .AddDefaultTokenProviders();
 
 // ---- Autenticação JWT ----
 builder.Services.AddAuthentication(options =>
@@ -88,6 +90,8 @@ builder.Services.AddScoped<ISyncService, SyncService>();
 builder.Services.AddScoped<ITransactionExportService, TransactionExportService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IUserInviteService, UserInviteService>();
 
 // ---- Quartz (cron interno, verifica os 4 horários configurados a cada 5 min) ----
 builder.Services.AddQuartz(q =>

@@ -23,6 +23,9 @@ public class AuthController(
         if (user is null || !user.IsActive)
             return Unauthorized(new { error = "Credenciais inválidas." });
 
+        if (!user.PasswordSet)
+            return Unauthorized(new { error = "Esta conta ainda não está ativa. Verifica o teu email para definires a password." });
+
         var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
         if (!result.Succeeded)
         {
@@ -51,7 +54,32 @@ public class AuthController(
 
         var roles = await userManager.GetRolesAsync(user);
         var passwordExpired = PasswordPolicy.IsExpired(user, roles);
-        return Ok(new UserResponse(user.Id, user.UserName!, user.Email!, user.FullName, user.IsActive, roles, user.LastLoginAt, passwordExpired));
+        return Ok(new UserResponse(user.Id, user.UserName!, user.Email!, user.FullName, user.IsActive, roles, user.LastLoginAt, passwordExpired, user.PasswordSet));
+    }
+
+    /// <summary>
+    /// Consome o link enviado por email (convite inicial ou reenvio forçado) para o
+    /// utilizador definir a sua própria password. Anónimo — validado pelo token do Identity.
+    /// </summary>
+    [HttpPost("set-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<LoginResponse>> SetPassword(SetPasswordRequest request)
+    {
+        var user = await userManager.FindByIdAsync(request.UserId.ToString());
+        if (user is null) return BadRequest(new { error = "Link inválido." });
+
+        var result = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        if (!result.Succeeded)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+
+        user.PasswordSet = true;
+        user.PasswordChangedAt = DateTimeOffset.UtcNow;
+        await userManager.UpdateAsync(user);
+        await auditService.LogAsync(user.Id, "Auth.SetPassword");
+
+        var roles = await userManager.GetRolesAsync(user);
+        var token = jwtTokenService.GenerateToken(user, roles, passwordExpired: false);
+        return Ok(new LoginResponse(token, DateTime.UtcNow.AddMinutes(60), user.UserName!, user.FullName, roles, false));
     }
 
     /// <summary>Qualquer utilizador autenticado pode mudar a própria password a qualquer momento.</summary>
