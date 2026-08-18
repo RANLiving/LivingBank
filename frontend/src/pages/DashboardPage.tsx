@@ -63,7 +63,7 @@ export default function DashboardPage() {
     const list = [...byCompany.values()].sort((a, b) => a.name.localeCompare(b.name, 'pt'));
     const withoutCompany = list.filter((g) => g.key === '__none__');
     const withCompany = list.filter((g) => g.key !== '__none__');
-    return [...withCompany, ...withoutCompany];
+    return [...withoutCompany, ...withCompany];
   }, [accounts]);
 
   function toggleGroup(key: string) {
