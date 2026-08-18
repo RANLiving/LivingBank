@@ -68,6 +68,8 @@ public class BankLinkController(
         if (string.IsNullOrWhiteSpace(code))
         {
             // O banco cancelou/rejeitou o consentimento ou devolveu um erro em vez de "code".
+            // Guarda o query string completo (Path) porque cada ASPSP devolve campos diferentes
+            // além de error/error_description — assim dá para diagnosticar sem repetir o teste.
             var message = !string.IsNullOrWhiteSpace(errorDescription) ? errorDescription
                 : !string.IsNullOrWhiteSpace(error) ? error
                 : "O banco não devolveu autorização (consentimento cancelado ou rejeitado).";
@@ -76,7 +78,8 @@ public class BankLinkController(
             {
                 Source = "BankLink.Callback",
                 Message = message,
-                Path = "/api/bank-link/callback"
+                Path = $"/api/bank-link/callback{Request.QueryString}",
+                StackTrace = $"Query completa recebida do banco: {Request.QueryString}"
             });
             await db.SaveChangesAsync();
 
