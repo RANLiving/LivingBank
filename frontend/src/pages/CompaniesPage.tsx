@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '../api/client';
 import type { Company } from '../types';
 
@@ -12,6 +12,18 @@ export default function CompaniesPage() {
   const [editForm, setEditForm] = useState({ name: '', taxId: '', address: '' });
   const [editBusy, setEditBusy] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    }
+    if (openMenuId) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
   async function load() {
     const { data } = await api.get<Company[]>('/api/companies');
@@ -157,14 +169,27 @@ export default function CompaniesPage() {
                         {c.isActive ? 'Ativa' : 'Inativa'}
                       </span>
                     </td>
-                    <td style={{ display: 'flex', gap: 8 }}>
-                      <button className="lb-btn-outline" onClick={() => startEdit(c)}>Editar</button>
-                      <button className="lb-btn-outline" onClick={() => toggleActive(c)}>
-                        {c.isActive ? 'Desativar' : 'Ativar'}
-                      </button>
-                      {c.bankAccountCount === 0 && (
-                        <button className="lb-btn-outline" onClick={() => handleDelete(c)}>Eliminar</button>
-                      )}
+                    <td>
+                      <div className="lb-menu-wrap" ref={openMenuId === c.id ? menuRef : undefined}>
+                        <button className="lb-btn-outline" onClick={() => setOpenMenuId(openMenuId === c.id ? null : c.id)}>
+                          Ações ▾
+                        </button>
+                        {openMenuId === c.id && (
+                          <div className="lb-menu">
+                            <button className="lb-menu-item" onClick={() => { startEdit(c); setOpenMenuId(null); }}>
+                              Editar
+                            </button>
+                            <button className="lb-menu-item" onClick={() => { toggleActive(c); setOpenMenuId(null); }}>
+                              {c.isActive ? 'Desativar' : 'Ativar'}
+                            </button>
+                            {c.bankAccountCount === 0 && (
+                              <button className="lb-menu-item lb-menu-item-danger" onClick={() => { handleDelete(c); setOpenMenuId(null); }}>
+                                Eliminar
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </>
                 )}

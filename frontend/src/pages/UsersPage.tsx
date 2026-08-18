@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '../api/client';
 import type { User } from '../types';
 
@@ -16,6 +16,18 @@ export default function UsersPage() {
   const [editBusy, setEditBusy] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    }
+    if (openMenuId) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
   async function load() {
     const { data } = await api.get<User[]>('/api/users');
@@ -205,19 +217,36 @@ export default function UsersPage() {
                     </td>
                     <td>{u.passwordSet ? '—' : <span className="lb-badge lb-badge-error">Convite pendente</span>}</td>
                     <td>{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('pt-PT') : '—'}</td>
-                    <td style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button className="lb-btn-outline" onClick={() => startEdit(u)}>Editar</button>
-                      {!isAdmin && (
-                        <button className="lb-btn-outline" onClick={() => toggleActive(u)}>
-                          {u.isActive ? 'Desativar' : 'Ativar'}
+                    <td>
+                      <div className="lb-menu-wrap" ref={openMenuId === u.id ? menuRef : undefined}>
+                        <button className="lb-btn-outline" onClick={() => setOpenMenuId(openMenuId === u.id ? null : u.id)}>
+                          Ações ▾
                         </button>
-                      )}
-                      <button className="lb-btn-outline" disabled={resendingId === u.id} onClick={() => handleResendInvite(u)}>
-                        {resendingId === u.id ? 'A enviar…' : 'Reenviar convite'}
-                      </button>
-                      {!isAdmin && !u.lastLoginAt && (
-                        <button className="lb-btn-outline" onClick={() => handleDelete(u)}>Eliminar</button>
-                      )}
+                        {openMenuId === u.id && (
+                          <div className="lb-menu">
+                            <button className="lb-menu-item" onClick={() => { startEdit(u); setOpenMenuId(null); }}>
+                              Editar
+                            </button>
+                            {!isAdmin && (
+                              <button className="lb-menu-item" onClick={() => { toggleActive(u); setOpenMenuId(null); }}>
+                                {u.isActive ? 'Desativar' : 'Ativar'}
+                              </button>
+                            )}
+                            <button
+                              className="lb-menu-item"
+                              disabled={resendingId === u.id}
+                              onClick={() => { handleResendInvite(u); setOpenMenuId(null); }}
+                            >
+                              {resendingId === u.id ? 'A enviar…' : 'Reenviar convite'}
+                            </button>
+                            {!isAdmin && !u.lastLoginAt && (
+                              <button className="lb-menu-item lb-menu-item-danger" onClick={() => { handleDelete(u); setOpenMenuId(null); }}>
+                                Eliminar
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </>
                 )}

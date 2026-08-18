@@ -213,3 +213,52 @@ input, select {
   font-weight: 600;
   margin-bottom: 4px;
 }
+
+.lb-menu-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.lb-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: #fff;
+  border: 1px solid var(--lb-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 20;
+  overflow: hidden;
+}
+
+.lb-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--lb-border);
+  font-size: 14px;
+  color: var(--lb-text);
+  cursor: pointer;
+}
+
+.lb-menu-item:last-child {
+  border-bottom: none;
+}
+
+.lb-menu-item:hover:not(:disabled) {
+  background: var(--lb-surface);
+}
+
+.lb-menu-item:disabled {
+  color: var(--lb-border);
+  cursor: not-allowed;
+}
+
+.lb-menu-item.lb-menu-item-danger {
+  color: var(--lb-text);
+  font-weight: 600;
+}
