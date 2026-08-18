@@ -21,8 +21,9 @@ export default function LinkAccountPage() {
     setError(null);
     try {
       const { data } = await api.get<Aspsp[]>('/api/bank-link/aspsps', { params: { country } });
-      setAspsps(data);
-      setSelected(data[0]?.name ?? '');
+      const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+      setAspsps(sorted);
+      setSelected(sorted[0]?.name ?? '');
     } catch {
       setError('Falha ao obter a lista de bancos do Enable Banking.');
     } finally {
