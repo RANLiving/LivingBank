@@ -65,6 +65,27 @@ public class CompaniesController(AppDbContext db, IAuditService auditService) : 
         return Ok(new CompanyResponse(company.Id, company.Name, company.TaxId, company.Address, company.IsActive, count));
     }
 
+    /// <summary>
+    /// Elimina definitivamente uma empresa (ao contrário dos movimentos bancários, que nunca
+    /// são eliminados, empresas são apenas metadados organizacionais). Só permitido sem contas ligadas.
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Policy = Permissions.ManageBankAccounts)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var company = await db.Companies.FindAsync(id);
+        if (company is null) return NotFound();
+
+        var hasAccounts = await db.BankAccounts.AnyAsync(a => a.CompanyId == id);
+        if (hasAccounts)
+            return BadRequest(new { error = "Não é possível eliminar: há contas bancárias ligadas a esta empresa." });
+
+        db.Companies.Remove(company);
+        await db.SaveChangesAsync();
+        await auditService.LogAsync(GetCurrentUserId(), "Company.Delete", $"empresa={company.Name} nif={company.TaxId}");
+        return NoContent();
+    }
+
     [HttpPatch("{id}/deactivate")]
     [Authorize(Policy = Permissions.ManageBankAccounts)]
     public async Task<IActionResult> Deactivate(Guid id)

@@ -37,6 +37,17 @@ export default function CompaniesPage() {
     await load();
   }
 
+  async function handleDelete(c: Company) {
+    if (!confirm(`Eliminar definitivamente "${c.name}"? Esta ação não pode ser desfeita.`)) return;
+    setError(null);
+    try {
+      await api.delete(`/api/companies/${c.id}`);
+      await load();
+    } catch (err: any) {
+      setError(err?.response?.data?.error ?? 'Falha ao eliminar empresa.');
+    }
+  }
+
   return (
     <div>
       <h1 style={{ fontSize: 24, marginBottom: 16 }}>Empresas</h1>
@@ -86,10 +97,13 @@ export default function CompaniesPage() {
                   {c.isActive ? 'Ativa' : 'Inativa'}
                 </span>
               </td>
-              <td>
+              <td style={{ display: 'flex', gap: 8 }}>
                 <button className="lb-btn-outline" onClick={() => toggleActive(c)}>
                   {c.isActive ? 'Desativar' : 'Ativar'}
                 </button>
+                {c.bankAccountCount === 0 && (
+                  <button className="lb-btn-outline" onClick={() => handleDelete(c)}>Eliminar</button>
+                )}
               </td>
             </tr>
           ))}
