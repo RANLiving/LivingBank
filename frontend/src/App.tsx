@@ -10,12 +10,16 @@ import LogsPage from './pages/LogsPage';
 import SchedulePage from './pages/SchedulePage';
 import LinkAccountPage from './pages/LinkAccountPage';
 import LinkCallbackPage from './pages/LinkCallbackPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route
           element={
             <ProtectedRoute>
