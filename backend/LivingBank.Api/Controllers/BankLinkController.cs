@@ -129,6 +129,6 @@ public class BankLinkController(
             userIdClaim is not null ? Guid.Parse(userIdClaim) : null,
             "BankAccount.Link", $"conta={account.DisplayName} iban={account.Iban} banco={account.BankName}");
 
-        return Ok(new BankAccountResponse(account.Id, account.Iban, account.BankName, account.DisplayName, account.Currency, account.IsActive, account.ConsentValidUntil, null, null));
+        return Ok(new BankAccountResponse(account.Id, account.Iban, account.BankName, account.DisplayName, account.Currency, account.IsActive, account.ConsentValidUntil, null, null, 0));
     }
 }

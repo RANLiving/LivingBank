@@ -15,7 +15,8 @@ public record CreateBankAccountRequest(
 
 public record BankAccountResponse(
     Guid Id, string Iban, string BankName, string DisplayName, string Currency,
-    bool IsActive, DateTimeOffset? ConsentValidUntil, decimal? LatestBalance, DateTimeOffset? LatestBalanceDate);
+    bool IsActive, DateTimeOffset? ConsentValidUntil, decimal? LatestBalance, DateTimeOffset? LatestBalanceDate,
+    int TransactionCount);
 
 public record BalanceResponse(long Id, string BalanceType, decimal Amount, string Currency, DateTimeOffset ReferenceDate, DateTimeOffset FetchedAt);
 

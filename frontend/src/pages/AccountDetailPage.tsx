@@ -3,6 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Transaction } from '../types';
 
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency }).format(amount);
+}
+
 export default function AccountDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -41,7 +45,7 @@ export default function AccountDetailPage() {
                 <td>{t.description || '—'}</td>
                 <td>{t.counterpartyName || '—'}</td>
                 <td style={{ textAlign: 'right', color: t.creditDebitIndicator === 'CRDT' ? '#0a8a2e' : '#e10a0a' }}>
-                  {t.creditDebitIndicator === 'CRDT' ? '+' : '-'}{t.amount.toFixed(2)} {t.currency}
+                  {t.creditDebitIndicator === 'CRDT' ? '+' : '-'}{formatCurrency(t.amount, t.currency)}
                 </td>
                 <td>{t.status}</td>
               </tr>

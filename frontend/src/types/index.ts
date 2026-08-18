@@ -26,6 +26,7 @@ export interface BankAccount {
   consentValidUntil: string | null;
   latestBalance: number | null;
   latestBalanceDate: string | null;
+  transactionCount: number;
 }
 
 export interface Balance {

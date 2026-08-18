@@ -4,6 +4,10 @@ import { api } from '../api/client';
 import type { BankAccount, SyncStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency }).format(amount);
+}
+
 export default function DashboardPage() {
   const { hasRole } = useAuth();
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -56,7 +60,10 @@ export default function DashboardPage() {
               </div>
               <div className="lb-muted">{a.bankName} · {a.iban}</div>
               <div style={{ fontSize: 28, fontWeight: 700, margin: '12px 0' }}>
-                {a.latestBalance !== null ? `${a.latestBalance.toFixed(2)} ${a.currency}` : '—'}
+                {a.latestBalance !== null ? formatCurrency(a.latestBalance, a.currency) : '—'}
+              </div>
+              <div className="lb-muted" style={{ marginBottom: 4 }}>
+                {a.transactionCount} {a.transactionCount === 1 ? 'movimento' : 'movimentos'}
               </div>
               {status && (
                 <div className="lb-muted" style={{ marginBottom: 10 }}>

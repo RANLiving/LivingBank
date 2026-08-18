@@ -13,16 +13,42 @@ namespace LivingBank.Api.Controllers;
 [Authorize]
 public class BankAccountsController(AppDbContext db, IAuditService auditService) : ControllerBase
 {
+    // Prioridade de tipos de saldo do Enable Banking (ISO 20022) para escolher qual mostrar
+    // como "saldo atual" — closing booked é o saldo contabilístico fechado do dia anterior,
+    // preferimos interim available (saldo disponível em tempo real) quando existir.
+    private static readonly string[] BalanceTypePriority = ["interimAvailable", "ITAV", "closingBooked", "CLBD", "expected", "XPCD", "openingBooked", "OPBD"];
+
     [HttpGet]
     public async Task<ActionResult<List<BankAccountResponse>>> GetAll()
     {
         var accounts = await db.BankAccounts
-            .Select(a => new BankAccountResponse(
-                a.Id, a.Iban, a.BankName, a.DisplayName, a.Currency, a.IsActive, a.ConsentValidUntil,
-                a.Balances.OrderByDescending(b => b.FetchedAt).Select(b => (decimal?)b.Amount).FirstOrDefault(),
-                a.Balances.OrderByDescending(b => b.FetchedAt).Select(b => (DateTimeOffset?)b.FetchedAt).FirstOrDefault()))
+            .Select(a => new
+            {
+                Account = a,
+                LatestBalance = a.Balances
+                    .OrderByDescending(b => b.FetchedAt)
+                    .Select(b => new { b.Amount, b.BalanceType, b.FetchedAt })
+                    .ToList(),
+                TransactionCount = a.Transactions.Count()
+            })
             .ToListAsync();
-        return Ok(accounts);
+
+        var result = accounts.Select(x =>
+        {
+            var picked = BalanceTypePriority
+                .Select(type => x.LatestBalance.FirstOrDefault(b => b.BalanceType == type))
+                .FirstOrDefault(b => b is not null)
+                ?? x.LatestBalance.FirstOrDefault();
+
+            return new BankAccountResponse(
+                x.Account.Id, x.Account.Iban, x.Account.BankName, x.Account.DisplayName, x.Account.Currency,
+                x.Account.IsActive, x.Account.ConsentValidUntil,
+                picked is not null ? (decimal?)picked.Amount : null,
+                picked is not null ? (DateTimeOffset?)picked.FetchedAt : null,
+                x.TransactionCount);
+        }).ToList();
+
+        return Ok(result);
     }
 
     [HttpPost]
@@ -45,7 +71,7 @@ public class BankAccountsController(AppDbContext db, IAuditService auditService)
         await db.SaveChangesAsync();
 
         await auditService.LogAsync(GetCurrentUserId(), "BankAccount.Create", $"conta={account.DisplayName} iban={account.Iban}");
-        return Ok(new BankAccountResponse(account.Id, account.Iban, account.BankName, account.DisplayName, account.Currency, account.IsActive, account.ConsentValidUntil, null, null));
+        return Ok(new BankAccountResponse(account.Id, account.Iban, account.BankName, account.DisplayName, account.Currency, account.IsActive, account.ConsentValidUntil, null, null, 0));
     }
 
     [HttpPatch("{id}/deactivate")]
