@@ -68,7 +68,7 @@ public class TransactionExportService(AppDbContext db) : ITransactionExportServi
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
 
-        var fileName = $"movimentos-{account.DisplayName}-{from:yyyyMMdd}-{to:yyyyMMdd}.xlsx".Replace(' ', '-');
+        var fileName = $"{account.Iban}-{account.DisplayName}-{from:yyyyMMdd}-{to:yyyyMMdd}.xlsx".Replace(' ', '-');
         return (stream.ToArray(), fileName);
     }
 
