@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
+import type { Company } from '../types';
 
 interface LinkedAccountOption {
   uid: string;
@@ -13,6 +14,8 @@ export default function LinkCallbackPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState<LinkedAccountOption[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyId, setCompanyId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingUid, setSavingUid] = useState<string | null>(null);
@@ -23,6 +26,8 @@ export default function LinkCallbackPage() {
   const bankName = sessionStorage.getItem('lb_link_bankname') ?? 'Banco';
 
   useEffect(() => {
+    api.get<Company[]>('/api/companies').then(({ data }) => setCompanies(data.filter((c) => c.isActive)));
+
     if (paramError) {
       setError(`Enable Banking devolveu um erro: ${paramError}`);
       setLoading(false);
@@ -51,6 +56,7 @@ export default function LinkCallbackPage() {
         bankName,
         displayName: acc.name ?? bankName,
         currency: acc.currency,
+        companyId: companyId || null,
       });
       setSavedUids((prev) => [...prev, acc.uid]);
     } catch (err: any) {
@@ -69,6 +75,16 @@ export default function LinkCallbackPage() {
 
       {!loading && accounts.length === 0 && !error && (
         <p className="lb-muted">Nenhuma conta foi devolvida para esta sessão.</p>
+      )}
+
+      {!loading && accounts.length > 0 && (
+        <div className="lb-field" style={{ maxWidth: 320, marginBottom: 16 }}>
+          <label>Empresa a associar (opcional)</label>
+          <select className="lb-input" value={companyId} onChange={(e) => setCompanyId(e.target.value)}>
+            <option value="">Sem empresa</option>
+            {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
       )}
 
       <div className="lb-grid">

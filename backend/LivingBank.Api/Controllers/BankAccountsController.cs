@@ -32,7 +32,8 @@ public class BankAccountsController(AppDbContext db, IAuditService auditService,
                     .OrderByDescending(b => b.FetchedAt)
                     .Select(b => new { b.Amount, b.BalanceType, b.FetchedAt })
                     .ToList(),
-                TransactionCount = a.Transactions.Count()
+                TransactionCount = a.Transactions.Count(),
+                CompanyName = a.Company != null ? a.Company.Name : null
             })
             .ToListAsync();
 
@@ -59,7 +60,7 @@ public class BankAccountsController(AppDbContext db, IAuditService auditService,
                 x.Account.IsActive, x.Account.ConsentValidUntil,
                 picked is not null ? (decimal?)picked.Amount : null,
                 picked is not null ? (DateTimeOffset?)picked.FetchedAt : null,
-                x.TransactionCount);
+                x.TransactionCount, x.Account.CompanyId, x.CompanyName);
         }).ToList();
 
         return Ok(result);
@@ -79,13 +80,14 @@ public class BankAccountsController(AppDbContext db, IAuditService auditService,
             AspspName = request.AspspName,
             AspspCountry = string.IsNullOrWhiteSpace(request.AspspCountry) ? "PT" : request.AspspCountry,
             SessionId = request.SessionId,
-            ConsentValidUntil = request.ConsentValidUntil
+            ConsentValidUntil = request.ConsentValidUntil,
+            CompanyId = request.CompanyId
         };
         db.BankAccounts.Add(account);
         await db.SaveChangesAsync();
 
         await auditService.LogAsync(GetCurrentUserId(), "BankAccount.Create", $"conta={account.DisplayName} iban={account.Iban}");
-        return Ok(new BankAccountResponse(account.Id, account.Iban, account.BankName, account.DisplayName, account.Currency, account.IsActive, account.ConsentValidUntil, null, null, 0));
+        return Ok(new BankAccountResponse(account.Id, account.Iban, account.BankName, account.DisplayName, account.Currency, account.IsActive, account.ConsentValidUntil, null, null, 0, account.CompanyId, null));
     }
 
     [HttpPatch("{id}/deactivate")]
@@ -97,6 +99,22 @@ public class BankAccountsController(AppDbContext db, IAuditService auditService,
         account.IsActive = false;
         await db.SaveChangesAsync();
         await auditService.LogAsync(GetCurrentUserId(), "BankAccount.Deactivate", $"conta={account.DisplayName}");
+        return NoContent();
+    }
+
+    [HttpPatch("{id}/company")]
+    [Authorize(Policy = Permissions.ManageBankAccounts)]
+    public async Task<IActionResult> AssignCompany(Guid id, AssignCompanyRequest request)
+    {
+        var account = await db.BankAccounts.FindAsync(id);
+        if (account is null) return NotFound();
+
+        if (request.CompanyId.HasValue && !await db.Companies.AnyAsync(c => c.Id == request.CompanyId.Value))
+            return BadRequest(new { error = "Empresa não encontrada." });
+
+        account.CompanyId = request.CompanyId;
+        await db.SaveChangesAsync();
+        await auditService.LogAsync(GetCurrentUserId(), "BankAccount.AssignCompany", $"conta={account.DisplayName} empresaId={request.CompanyId}");
         return NoContent();
     }
 

@@ -144,7 +144,8 @@ public class BankLinkController(
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? "EUR" : request.Currency,
             AspspName = request.BankName,
             SessionId = request.SessionId,
-            ConsentValidUntil = DateTimeOffset.UtcNow.AddDays(90)
+            ConsentValidUntil = DateTimeOffset.UtcNow.AddDays(90),
+            CompanyId = request.CompanyId
         };
         db.BankAccounts.Add(account);
         await db.SaveChangesAsync();
@@ -154,6 +155,6 @@ public class BankLinkController(
             userIdClaim is not null ? Guid.Parse(userIdClaim) : null,
             "BankAccount.Link", $"conta={account.DisplayName} iban={account.Iban} banco={account.BankName}");
 
-        return Ok(new BankAccountResponse(account.Id, account.Iban, account.BankName, account.DisplayName, account.Currency, account.IsActive, account.ConsentValidUntil, null, null, 0));
+        return Ok(new BankAccountResponse(account.Id, account.Iban, account.BankName, account.DisplayName, account.Currency, account.IsActive, account.ConsentValidUntil, null, null, 0, account.CompanyId, null));
     }
 }

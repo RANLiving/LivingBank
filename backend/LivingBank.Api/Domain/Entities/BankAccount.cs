@@ -23,6 +23,9 @@ public class BankAccount
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
+    public Guid? CompanyId { get; set; }
+    public Company? Company { get; set; }
+
     public ICollection<Balance> Balances { get; set; } = new List<Balance>();
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
     public ICollection<SyncLog> SyncLogs { get; set; } = new List<SyncLog>();

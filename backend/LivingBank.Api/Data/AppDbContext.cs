@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
     public DbSet<UserBankAccountAccess> UserBankAccountAccesses => Set<UserBankAccountAccess>();
     public DbSet<SyncSchedule> SyncSchedules => Set<SyncSchedule>();
+    public DbSet<Company> Companies => Set<Company>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -24,6 +25,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.HasIndex(x => x.EnableBankingAccountId).IsUnique();
             e.HasIndex(x => x.Iban);
+            e.HasOne(x => x.Company).WithMany(c => c.BankAccounts).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<Company>(e =>
+        {
+            e.HasIndex(x => x.TaxId).IsUnique();
         });
 
         builder.Entity<Transaction>(e =>

@@ -13,6 +13,7 @@ import LinkCallbackPage from './pages/LinkCallbackPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
+import CompaniesPage from './pages/CompaniesPage';
 
 export default function App() {
   return (
@@ -44,6 +45,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={['Admin', 'Manager']}>
                 <LinkCallbackPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/companies"
+            element={
+              <ProtectedRoute roles={['Admin', 'Manager']}>
+                <CompaniesPage />
               </ProtectedRoute>
             }
           />

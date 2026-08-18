@@ -18,4 +18,5 @@ public record SaveLinkedAccountRequest(
     [Required] string Iban,
     [Required] string BankName,
     [Required] string DisplayName,
-    string Currency);
+    string Currency,
+    Guid? CompanyId);

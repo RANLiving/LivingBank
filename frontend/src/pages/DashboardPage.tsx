@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import type { BankAccount, SyncStatus } from '../types';
+import type { BankAccount, Company, SyncStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 
 function formatCurrency(amount: number, currency: string) {
@@ -11,6 +11,7 @@ function formatCurrency(amount: number, currency: string) {
 export default function DashboardPage() {
   const { hasRole } = useAuth();
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [statuses, setStatuses] = useState<Record<string, SyncStatus>>({});
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +30,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     load();
+    api.get<Company[]>('/api/companies').then(({ data }) => setCompanies(data.filter((c) => c.isActive)));
   }, []);
+
+  async function handleAssignCompany(accountId: string, companyId: string) {
+    await api.patch(`/api/bank-accounts/${accountId}/company`, { companyId: companyId || null });
+    await load();
+  }
 
   async function handleForceSync(accountId: string) {
     setError(null);
@@ -59,6 +66,19 @@ export default function DashboardPage() {
                 {!a.isActive && <span className="lb-badge lb-badge-error">Inativa</span>}
               </div>
               <div className="lb-muted">{a.bankName} · {a.iban}</div>
+              {hasRole('Admin', 'Manager') ? (
+                <select
+                  className="lb-input"
+                  style={{ marginTop: 6, fontSize: 13, padding: '4px 8px' }}
+                  value={a.companyId ?? ''}
+                  onChange={(e) => handleAssignCompany(a.id, e.target.value)}
+                >
+                  <option value="">Sem empresa</option>
+                  {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              ) : (
+                a.companyName && <div className="lb-muted">Empresa: {a.companyName}</div>
+              )}
               <div style={{ fontSize: 28, fontWeight: 700, margin: '12px 0' }}>
                 {a.latestBalance !== null ? formatCurrency(a.latestBalance, a.currency) : '—'}
               </div>

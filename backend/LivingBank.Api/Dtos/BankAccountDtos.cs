@@ -11,12 +11,15 @@ public record CreateBankAccountRequest(
     [Required] string AspspName,
     string AspspCountry,
     string? SessionId,
-    DateTimeOffset? ConsentValidUntil);
+    DateTimeOffset? ConsentValidUntil,
+    Guid? CompanyId);
 
 public record BankAccountResponse(
     Guid Id, string Iban, string BankName, string DisplayName, string Currency,
     bool IsActive, DateTimeOffset? ConsentValidUntil, decimal? LatestBalance, DateTimeOffset? LatestBalanceDate,
-    int TransactionCount);
+    int TransactionCount, Guid? CompanyId, string? CompanyName);
+
+public record AssignCompanyRequest(Guid? CompanyId);
 
 public record BalanceResponse(long Id, string BalanceType, decimal Amount, string Currency, DateTimeOffset ReferenceDate, DateTimeOffset FetchedAt);
 

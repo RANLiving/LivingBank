@@ -29,6 +29,17 @@ export interface BankAccount {
   latestBalance: number | null;
   latestBalanceDate: string | null;
   transactionCount: number;
+  companyId: string | null;
+  companyName: string | null;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  taxId: string;
+  address: string | null;
+  isActive: boolean;
+  bankAccountCount: number;
 }
 
 export interface Balance {
