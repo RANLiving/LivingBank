@@ -52,8 +52,8 @@ export default function ExportTransactionsModal({ accountId, onClose }: { accoun
       URL.revokeObjectURL(url);
 
       onClose();
-    } catch {
-      setError('Falha ao gerar o Excel. Tenta novamente.');
+    } catch (err: any) {
+      setError(await extractErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -108,6 +108,21 @@ export default function ExportTransactionsModal({ accountId, onClose }: { accoun
       </div>
     </div>
   );
+}
+
+// Com responseType: 'blob', o corpo de um erro tambem chega como Blob (não JSON já parseado).
+async function extractErrorMessage(err: any): Promise<string> {
+  const data = err?.response?.data;
+  if (data instanceof Blob) {
+    try {
+      const text = await data.text();
+      const parsed = JSON.parse(text);
+      if (parsed?.error) return parsed.error;
+    } catch {
+      // ignora, cai no fallback abaixo
+    }
+  }
+  return 'Falha ao gerar o Excel. Tenta novamente.';
 }
 
 const overlayStyle: CSSProperties = {

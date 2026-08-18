@@ -26,6 +26,9 @@ public class TransactionExportService(AppDbContext db) : ITransactionExportServi
 
         var transactions = await query.OrderBy(t => t.BookingDate).ToListAsync(ct);
 
+        if (transactions.Count == 0)
+            throw new InvalidOperationException("Não há movimentos para exportar com este âmbito/período.");
+
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("Movimentos");
 
