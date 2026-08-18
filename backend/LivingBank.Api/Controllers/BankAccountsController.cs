@@ -15,8 +15,11 @@ public class BankAccountsController(AppDbContext db, IAuditService auditService)
 {
     // Prioridade de tipos de saldo do Enable Banking (ISO 20022) para escolher qual mostrar
     // como "saldo atual" — closing booked é o saldo contabilístico fechado do dia anterior,
-    // preferimos interim available (saldo disponível em tempo real) quando existir.
-    private static readonly string[] BalanceTypePriority = ["interimAvailable", "ITAV", "closingBooked", "CLBD", "expected", "XPCD", "openingBooked", "OPBD"];
+    // preferimos interim available (saldo disponível em tempo real) quando existir. "OTHR"
+    // fica por último porque é um tipo genérico, mas nalguns bancos/produtos é o único que
+    // reporta um valor real (os tipos-padrão vêm todos a 0).
+    private static readonly string[] BalanceTypePriority =
+        ["interimAvailable", "ITAV", "closingBooked", "CLBD", "expected", "XPCD", "openingBooked", "OPBD", "OTHR"];
 
     [HttpGet]
     public async Task<ActionResult<List<BankAccountResponse>>> GetAll()
@@ -35,10 +38,21 @@ public class BankAccountsController(AppDbContext db, IAuditService auditService)
 
         var result = accounts.Select(x =>
         {
-            var picked = BalanceTypePriority
-                .Select(type => x.LatestBalance.FirstOrDefault(b => b.BalanceType == type))
-                .FirstOrDefault(b => b is not null)
-                ?? x.LatestBalance.FirstOrDefault();
+            // Mais recente de cada tipo (a lista já vem ordenada por FetchedAt desc).
+            var latestByType = x.LatestBalance
+                .GroupBy(b => b.BalanceType)
+                .Select(g => g.First())
+                .ToList();
+
+            // 1) primeiro tipo da prioridade que tenha valor diferente de zero;
+            // 2) senão, o primeiro tipo da prioridade que exista (mesmo que seja 0);
+            // 3) senão, qualquer saldo não-zero;
+            // 4) senão, o que houver.
+            var picked =
+                BalanceTypePriority.Select(t => latestByType.FirstOrDefault(b => b.BalanceType == t)).FirstOrDefault(b => b is not null && b.Amount != 0)
+                ?? BalanceTypePriority.Select(t => latestByType.FirstOrDefault(b => b.BalanceType == t)).FirstOrDefault(b => b is not null)
+                ?? latestByType.FirstOrDefault(b => b.Amount != 0)
+                ?? latestByType.FirstOrDefault();
 
             return new BankAccountResponse(
                 x.Account.Id, x.Account.Iban, x.Account.BankName, x.Account.DisplayName, x.Account.Currency,
