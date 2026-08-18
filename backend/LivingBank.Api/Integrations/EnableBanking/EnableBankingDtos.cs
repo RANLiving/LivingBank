@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace LivingBank.Api.Integrations.EnableBanking;
@@ -143,11 +144,11 @@ public class EbSessionResponse
     [JsonPropertyName("session_id")]
     public string SessionId { get; set; } = string.Empty;
 
+    // O Enable Banking devolve aqui tanto uma lista de UIDs (string) como, nalgumas
+    // respostas, os objetos de conta completos — por isso lê-se como JsonElement bruto
+    // e interpreta-se em EnableBankingClient consoante a forma real recebida.
     [JsonPropertyName("accounts")]
-    public List<string> AccountUids { get; set; } = [];
-
-    [JsonPropertyName("accounts_data")]
-    public List<EbAccountDto>? AccountsData { get; set; }
+    public JsonElement AccountsRaw { get; set; }
 
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;

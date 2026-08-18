@@ -90,12 +90,29 @@ public class EnableBankingClient : IEnableBankingClient
         await EnsureSuccessAsync(sessionResponse, ct);
         var session = await sessionResponse.Content.ReadFromJsonAsync<EbSessionResponse>(cancellationToken: ct) ?? new EbSessionResponse();
 
-        if (session.AccountsData is { Count: > 0 })
-            return new EbAccountsResponse { Accounts = session.AccountsData };
+        if (session.AccountsRaw.ValueKind != JsonValueKind.Array || session.AccountsRaw.GetArrayLength() == 0)
+            return new EbAccountsResponse();
 
-        var accounts = new List<EbAccountDto>();
-        foreach (var uid in session.AccountUids)
+        // Se o primeiro elemento já é um objeto completo, usa-o diretamente.
+        var first = session.AccountsRaw[0];
+        if (first.ValueKind == JsonValueKind.Object)
         {
+            var accountsFromObjects = session.AccountsRaw
+                .EnumerateArray()
+                .Select(el => el.Deserialize<EbAccountDto>())
+                .Where(a => a is not null)
+                .Select(a => a!)
+                .ToList();
+            return new EbAccountsResponse { Accounts = accountsFromObjects };
+        }
+
+        // Caso contrário são apenas UIDs (string) — vai buscar cada conta individualmente.
+        var accounts = new List<EbAccountDto>();
+        foreach (var el in session.AccountsRaw.EnumerateArray())
+        {
+            var uid = el.GetString();
+            if (string.IsNullOrEmpty(uid)) continue;
+
             ApplyAuthHeader();
             var accResponse = await _http.GetAsync($"/accounts/{uid}", ct);
             if (!accResponse.IsSuccessStatusCode) continue;
