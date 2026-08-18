@@ -35,7 +35,7 @@ export default function App() {
           <Route
             path="/link"
             element={
-              <ProtectedRoute roles={['Admin', 'Manager']}>
+              <ProtectedRoute roles={['Admin']}>
                 <LinkAccountPage />
               </ProtectedRoute>
             }
@@ -43,7 +43,7 @@ export default function App() {
           <Route
             path="/link/callback"
             element={
-              <ProtectedRoute roles={['Admin', 'Manager']}>
+              <ProtectedRoute roles={['Admin']}>
                 <LinkCallbackPage />
               </ProtectedRoute>
             }
@@ -75,7 +75,7 @@ export default function App() {
           <Route
             path="/schedule"
             element={
-              <ProtectedRoute roles={['Admin', 'Manager']}>
+              <ProtectedRoute roles={['Admin']}>
                 <SchedulePage />
               </ProtectedRoute>
             }

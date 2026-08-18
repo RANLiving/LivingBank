@@ -18,6 +18,7 @@ namespace LivingBank.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/bank-link")]
+[Authorize(Roles = Roles.Admin)]
 public class BankLinkController(
     IEnableBankingClient enableBankingClient,
     IOptions<EnableBankingOptions> options,
@@ -29,7 +30,6 @@ public class BankLinkController(
     private static string CacheKey(string sessionId) => $"eb-session-accounts:{sessionId}";
 
     [HttpGet("aspsps")]
-    [Authorize(Policy = Permissions.ManageBankAccounts)]
     public async Task<ActionResult<List<AspspOption>>> GetAspsps([FromQuery] string country = "PT")
     {
         var aspsps = await enableBankingClient.GetAspspsAsync(country);
@@ -37,7 +37,6 @@ public class BankLinkController(
     }
 
     [HttpPost("authorize")]
-    [Authorize(Policy = Permissions.ManageBankAccounts)]
     public async Task<ActionResult<StartLinkResponse>> Authorize(StartLinkRequest request)
     {
         if (string.IsNullOrWhiteSpace(_options.RedirectUrl))
@@ -108,7 +107,6 @@ public class BankLinkController(
     }
 
     [HttpGet("session/{sessionId}/accounts")]
-    [Authorize(Policy = Permissions.ManageBankAccounts)]
     public async Task<ActionResult<SessionAccountsResponse>> GetSessionAccounts(string sessionId)
     {
         List<Integrations.EnableBanking.EbAccountDto> accountDtos;
@@ -128,7 +126,6 @@ public class BankLinkController(
     }
 
     [HttpPost("save")]
-    [Authorize(Policy = Permissions.ManageBankAccounts)]
     public async Task<ActionResult<BankAccountResponse>> SaveLinkedAccount(SaveLinkedAccountRequest request)
     {
         var exists = await db.BankAccounts.AnyAsync(a => a.EnableBankingAccountId == request.AccountUid);

@@ -65,7 +65,7 @@ public class SyncController(
     }
 
     [HttpGet("schedule")]
-    [Authorize]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<ActionResult<SyncScheduleRequest>> GetSchedule()
     {
         var schedule = await db.SyncSchedules.FirstOrDefaultAsync() ?? new SyncSchedule();
@@ -73,7 +73,7 @@ public class SyncController(
     }
 
     [HttpPut("schedule")]
-    [Authorize(Policy = Permissions.ManageBankAccounts)]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<ActionResult> UpdateSchedule(SyncScheduleRequest request)
     {
         var schedule = await db.SyncSchedules.FirstOrDefaultAsync();
