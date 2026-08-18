@@ -15,7 +15,7 @@ public class UsersController(UserManager<ApplicationUser> userManager, IAuditSer
     [HttpGet]
     public async Task<ActionResult<List<UserResponse>>> GetAll()
     {
-        var users = userManager.Users.ToList();
+        var users = userManager.Users.OrderBy(u => u.FullName).ToList();
         var result = new List<UserResponse>();
         foreach (var u in users)
         {
