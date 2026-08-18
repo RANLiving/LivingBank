@@ -76,11 +76,18 @@ public class EnableBankingClient : IEnableBankingClient
     private static string Base64UrlEncode(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        if (response.IsSuccessStatusCode) return;
+        var body = await response.Content.ReadAsStringAsync(ct);
+        throw new HttpRequestException($"Enable Banking devolveu {(int)response.StatusCode} {response.StatusCode}: {body}");
+    }
+
     public async Task<EbAccountsResponse> GetAccountsAsync(string sessionId, CancellationToken ct = default)
     {
         ApplyAuthHeader();
         var sessionResponse = await _http.GetAsync($"/sessions/{sessionId}", ct);
-        sessionResponse.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(sessionResponse, ct);
         var session = await sessionResponse.Content.ReadFromJsonAsync<EbSessionResponse>(cancellationToken: ct) ?? new EbSessionResponse();
 
         if (session.AccountsData is { Count: > 0 })
@@ -102,7 +109,7 @@ public class EnableBankingClient : IEnableBankingClient
     {
         ApplyAuthHeader();
         var response = await _http.GetAsync($"/accounts/{accountUid}/balances", ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, ct);
         var result = await response.Content.ReadFromJsonAsync<EbBalancesResponse>(cancellationToken: ct);
         return result ?? new EbBalancesResponse();
     }
@@ -115,7 +122,7 @@ public class EnableBankingClient : IEnableBankingClient
         if (!string.IsNullOrEmpty(continuationKey)) query.Append($"continuation_key={Uri.EscapeDataString(continuationKey)}&");
 
         var response = await _http.GetAsync(query.ToString(), ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, ct);
         var result = await response.Content.ReadFromJsonAsync<EbTransactionsResponse>(cancellationToken: ct);
         return result ?? new EbTransactionsResponse();
     }
@@ -124,7 +131,7 @@ public class EnableBankingClient : IEnableBankingClient
     {
         ApplyAuthHeader();
         var response = await _http.GetAsync($"/aspsps?country={Uri.EscapeDataString(country)}", ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, ct);
         var result = await response.Content.ReadFromJsonAsync<EbAspspsResponse>(cancellationToken: ct);
         return result?.Aspsps ?? [];
     }
@@ -147,7 +154,7 @@ public class EnableBankingClient : IEnableBankingClient
         };
 
         var response = await _http.PostAsJsonAsync("/auth", payload, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, ct);
         var result = await response.Content.ReadFromJsonAsync<EbAuthorizeResponse>(cancellationToken: ct);
         return result?.Url ?? throw new InvalidOperationException("Enable Banking não devolveu um URL de autorização.");
     }
@@ -157,7 +164,7 @@ public class EnableBankingClient : IEnableBankingClient
     {
         ApplyAuthHeader();
         var response = await _http.PostAsJsonAsync("/sessions", new { code = authorizationCode }, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, ct);
         var result = await response.Content.ReadFromJsonAsync<EbSessionResponse>(cancellationToken: ct);
         return result ?? new EbSessionResponse();
     }
