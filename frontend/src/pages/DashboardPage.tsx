@@ -4,10 +4,7 @@ import { api } from '../api/client';
 import type { BankAccount, Company, SyncStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 import CompanyAssignModal from '../components/CompanyAssignModal';
-
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency }).format(amount);
-}
+import { formatCurrency } from '../utils/format';
 
 const COLLAPSE_KEY = 'lb_collapsed_company_groups';
 

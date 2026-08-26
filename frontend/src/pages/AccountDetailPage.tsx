@@ -3,10 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Transaction } from '../types';
 import ExportTransactionsModal from '../components/ExportTransactionsModal';
-
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency }).format(amount);
-}
+import { formatCurrency } from '../utils/format';
 
 export default function AccountDetailPage() {
   const { id } = useParams<{ id: string }>();
