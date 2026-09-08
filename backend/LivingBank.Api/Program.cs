@@ -116,7 +116,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
+    if (db.Database.IsRelational())
+        await db.Database.MigrateAsync();
+    else
+        await db.Database.EnsureCreatedAsync();
     await DbSeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
 }
 
@@ -147,3 +150,6 @@ app.UseMiddleware<AuditLoggingMiddleware>();
 app.MapControllers();
 
 app.Run();
+
+// Exposto para os testes de integração (WebApplicationFactory<Program>).
+public partial class Program;
