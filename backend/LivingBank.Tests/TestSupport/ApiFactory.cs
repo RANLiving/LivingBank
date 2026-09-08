@@ -1,15 +1,10 @@
-using System.Text;
-using LivingBank.Api.Configuration;
 using LivingBank.Api.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.IdentityModel.Tokens;
 
 namespace LivingBank.Tests.TestSupport;
 
@@ -26,25 +21,30 @@ public class ApiFactory : WebApplicationFactory<Program>
     public const string AdminPassword = "Str0ng!Passw0rd";
 
     private const string JwtSecret = "integration-tests-secret-key-0123456789-abcdefghijklmnopqrstuvwxyz";
-    private const string JwtIssuer = "LivingBank";
-    private const string JwtAudience = "LivingBank.Clients";
+
+    static ApiFactory()
+    {
+        // O Program.cs lê Jwt:Secret e Seed:* muito cedo (antes de qualquer customização
+        // da WebApplicationFactory), por isso a configuração tem de vir do ambiente do
+        // processo. O appsettings.Development.json não está no repositório, logo no CI
+        // estas chaves ficariam vazias e o SymmetricSecurityKey rebentava.
+        SetIfMissing("Jwt__Secret", JwtSecret);
+        SetIfMissing("Jwt__Issuer", "LivingBank");
+        SetIfMissing("Jwt__Audience", "LivingBank.Clients");
+        SetIfMissing("Seed__AdminUserName", AdminUserName);
+        SetIfMissing("Seed__AdminEmail", AdminEmail);
+        SetIfMissing("Seed__AdminPassword", AdminPassword);
+    }
+
+    private static void SetIfMissing(string name, string value)
+    {
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(name)))
+            Environment.SetEnvironmentVariable(name, value);
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-
-        builder.ConfigureAppConfiguration((_, config) =>
-        {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Jwt:Secret"] = JwtSecret,
-                ["Jwt:Issuer"] = JwtIssuer,
-                ["Jwt:Audience"] = JwtAudience,
-                ["Seed:AdminUserName"] = AdminUserName,
-                ["Seed:AdminEmail"] = AdminEmail,
-                ["Seed:AdminPassword"] = AdminPassword,
-            });
-        });
 
         builder.ConfigureServices(services =>
         {
@@ -56,24 +56,6 @@ public class ApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<AppDbContext>();
 
             services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(_dbName));
-
-            // O Program.cs lê Jwt:Secret uma vez, cedo, para configurar a validação do bearer.
-            // Dependendo da ordem de aplicação das fontes de configuração nos testes, essa
-            // leitura pode apanhar o segredo do appsettings.Development.json em vez do nosso.
-            // Fixamos aqui a chave (assinatura e validação) para não haver mismatch.
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSecret));
-            services.Configure<JwtOptions>(o =>
-            {
-                o.Secret = JwtSecret;
-                o.Issuer = JwtIssuer;
-                o.Audience = JwtAudience;
-            });
-            services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o =>
-            {
-                o.TokenValidationParameters.IssuerSigningKey = key;
-                o.TokenValidationParameters.ValidIssuer = JwtIssuer;
-                o.TokenValidationParameters.ValidAudience = JwtAudience;
-            });
         });
     }
 }
