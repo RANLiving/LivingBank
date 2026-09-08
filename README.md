@@ -59,6 +59,18 @@ npm install
 npm run dev
 ```
 
+### Testes do backend
+
+```bash
+dotnet test backend/LivingBank.Tests/LivingBank.Tests.csproj
+```
+
+Testes em xUnit: unitários dos serviços (`PasswordPolicy`, `JwtTokenService`,
+`TransactionExportService`, `SyncService`, `ScheduledSyncJob`) sobre o provider InMemory do
+EF Core com dependências externas (`IEnableBankingClient`) substituídas por _fakes_, e testes
+de integração do `AuthController` via `WebApplicationFactory`. Não precisam de PostgreSQL.
+Correm automaticamente no CI (`.github/workflows/backend-tests.yml`).
+
 ### Gerar o APK
 
 ```bash

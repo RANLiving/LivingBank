@@ -1,0 +1,31 @@
+name: Backend tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore backend/LivingBank.Api/LivingBank.Api.csproj backend/LivingBank.Tests/LivingBank.Tests.csproj
+
+      - name: Build
+        run: dotnet build backend/LivingBank.Tests/LivingBank.Tests.csproj --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test backend/LivingBank.Tests/LivingBank.Tests.csproj --configuration Release --no-build --verbosity normal

@@ -75,7 +75,7 @@ public class TransactionExportService(AppDbContext db) : ITransactionExportServi
         return (stream.ToArray(), fileName);
     }
 
-    private static (DateOnly From, DateOnly To) ResolvePeriod(ExportPeriod period, DateOnly? from, DateOnly? to)
+    internal static (DateOnly From, DateOnly To) ResolvePeriod(ExportPeriod period, DateOnly? from, DateOnly? to)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
