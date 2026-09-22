@@ -130,22 +130,45 @@ public class BankAccountsController(AppDbContext db, IAuditService auditService,
         return Ok(balances);
     }
 
+    /// <summary>
+    /// Lista paginada dos movimentos de uma conta, com filtros por data, texto livre
+    /// (descrição ou contraparte) e tipo (crédito/débito). Devolve o total de resultados
+    /// (antes da paginação) para o frontend construir a navegação de páginas.
+    /// </summary>
     [HttpGet("{id}/transactions")]
-    public async Task<ActionResult<List<TransactionResponse>>> GetTransactions(
-        Guid id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<ActionResult<PagedTransactionsResponse>> GetTransactions(
+        Guid id,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        [FromQuery] string? search,
+        [FromQuery] string? type,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 200);
+
         var query = db.Transactions.Where(t => t.BankAccountId == id);
         if (from.HasValue) query = query.Where(t => t.BookingDate >= from.Value);
         if (to.HasValue) query = query.Where(t => t.BookingDate <= to.Value);
+        if (type is "CRDT" or "DBIT") query = query.Where(t => t.CreditDebitIndicator == type);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(t =>
+                t.Description.ToLower().Contains(term) ||
+                (t.CounterpartyName != null && t.CounterpartyName.ToLower().Contains(term)));
+        }
 
+        var total = await query.CountAsync();
         var transactions = await query
-            .OrderByDescending(t => t.BookingDate)
+            .OrderByDescending(t => t.BookingDate).ThenByDescending(t => t.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(t => new TransactionResponse(t.Id, t.Amount, t.Currency, t.CreditDebitIndicator, t.BookingDate, t.ValueDate, t.Description, t.CounterpartyName, t.Status, t.IsExported))
             .ToListAsync();
 
-        return Ok(transactions);
+        return Ok(new PagedTransactionsResponse(transactions, total, page, pageSize));
     }
 
     /// <summary>

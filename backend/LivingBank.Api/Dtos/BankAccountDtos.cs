@@ -28,6 +28,8 @@ public record TransactionResponse(
     DateOnly BookingDate, DateOnly? ValueDate, string Description, string? CounterpartyName, string Status,
     bool IsExported);
 
+public record PagedTransactionsResponse(List<TransactionResponse> Items, int Total, int Page, int PageSize);
+
 public record SyncScheduleRequest(TimeOnly Time1, TimeOnly Time2, TimeOnly Time3, TimeOnly Time4);
 
 public enum ExportScope { All, NotExported }

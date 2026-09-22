@@ -65,6 +65,13 @@ export interface Transaction {
   isExported: boolean;
 }
 
+export interface PagedTransactions {
+  items: Transaction[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface SyncLog {
   id: number;
   bankAccountId: string;
