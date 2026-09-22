@@ -23,6 +23,9 @@ export default function AccountDetailPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  // true enquanto a API responder no formato antigo (array simples, sem total nem paginação
+  // real) — acontece numa janela de deploy em que o backend ainda não atualizou.
+  const [legacyApi, setLegacyApi] = useState(false);
 
   // Pesquisa por texto com debounce — evita um pedido por tecla.
   useEffect(() => {
@@ -53,6 +56,7 @@ export default function AccountDetailPage() {
         const items = Array.isArray(data) ? data : (data.items ?? []);
         setTransactions(items);
         setTotal(Array.isArray(data) ? items.length : (data.total ?? items.length));
+        setLegacyApi(Array.isArray(data));
         setLoading(false);
       });
   }, [id, page, search, type, from, to, refreshKey]);
@@ -109,9 +113,16 @@ export default function AccountDetailPage() {
         )}
       </div>
 
-      <p className="lb-muted" style={{ margin: '4px 0 12px' }}>
-        {total === 0 ? 'Sem movimentos.' : `${total} movimento${total === 1 ? '' : 's'} encontrado${total === 1 ? '' : 's'}`}
-      </p>
+      {legacyApi ? (
+        <p className="lb-error-banner">
+          O servidor está a atualizar — filtros, pesquisa e paginação ainda não estão disponíveis
+          e só se mostram os primeiros {total} movimentos. Atualiza a página daqui a pouco.
+        </p>
+      ) : (
+        <p className="lb-muted" style={{ margin: '4px 0 12px' }}>
+          {total === 0 ? 'Sem movimentos.' : `${total} movimento${total === 1 ? '' : 's'} encontrado${total === 1 ? '' : 's'}`}
+        </p>
+      )}
 
       {loading ? (
         <p>A carregar…</p>
