@@ -7,13 +7,14 @@ import { formatCurrency } from '../utils/format';
 
 type TypeFilter = 'All' | 'CRDT' | 'DBIT';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE_OPTIONS = [50, 100, 200, 500] as const;
 
 export default function AccountDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[0]);
   const [loading, setLoading] = useState(true);
   const [showExport, setShowExport] = useState(false);
 
@@ -33,8 +34,8 @@ export default function AccountDetailPage() {
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
-  // Qualquer alteração aos filtros volta à primeira página.
-  useEffect(() => setPage(1), [search, type, from, to]);
+  // Qualquer alteração aos filtros (ou ao tamanho da página) volta à primeira página.
+  useEffect(() => setPage(1), [search, type, from, to, pageSize]);
 
   useEffect(() => {
     if (!id) return;
@@ -43,7 +44,7 @@ export default function AccountDetailPage() {
       .get<PagedTransactions | Transaction[]>(`/api/bank-accounts/${id}/transactions`, {
         params: {
           page,
-          pageSize: PAGE_SIZE,
+          pageSize,
           search: search || undefined,
           type: type === 'All' ? undefined : type,
           from: from || undefined,
@@ -59,9 +60,9 @@ export default function AccountDetailPage() {
         setLegacyApi(Array.isArray(data));
         setLoading(false);
       });
-  }, [id, page, search, type, from, to, refreshKey]);
+  }, [id, page, pageSize, search, type, from, to, refreshKey]);
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const hasFilters = search || type !== 'All' || from || to;
 
   function clearFilters() {
@@ -105,6 +106,14 @@ export default function AccountDetailPage() {
         <div className="lb-field" style={{ flex: '1 1 150px', marginBottom: 0 }}>
           <label>Até</label>
           <input className="lb-input" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </div>
+        <div className="lb-field" style={{ flex: '0 1 110px', marginBottom: 0 }}>
+          <label>Por página</label>
+          <select className="lb-input" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+            {PAGE_SIZE_OPTIONS.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
         </div>
         {hasFilters && (
           <button className="lb-btn-outline" onClick={clearFilters} style={{ height: 40 }}>
@@ -157,7 +166,7 @@ export default function AccountDetailPage() {
         </table>
       )}
 
-      {!loading && total > PAGE_SIZE && (
+      {!loading && !legacyApi && total > pageSize && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 14, margin: '18px 0' }}>
           <button className="lb-btn-outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
             ← Anterior

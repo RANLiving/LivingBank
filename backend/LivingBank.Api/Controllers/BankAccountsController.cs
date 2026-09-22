@@ -146,7 +146,7 @@ public class BankAccountsController(AppDbContext db, IAuditService auditService,
         [FromQuery] int pageSize = 50)
     {
         page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 200);
+        pageSize = Math.Clamp(pageSize, 1, 500);
 
         var query = db.Transactions.Where(t => t.BankAccountId == id);
         if (from.HasValue) query = query.Where(t => t.BookingDate >= from.Value);
