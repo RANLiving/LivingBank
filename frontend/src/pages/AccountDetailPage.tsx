@@ -37,7 +37,7 @@ export default function AccountDetailPage() {
     if (!id) return;
     setLoading(true);
     api
-      .get<PagedTransactions>(`/api/bank-accounts/${id}/transactions`, {
+      .get<PagedTransactions | Transaction[]>(`/api/bank-accounts/${id}/transactions`, {
         params: {
           page,
           pageSize: PAGE_SIZE,
@@ -48,8 +48,11 @@ export default function AccountDetailPage() {
         },
       })
       .then(({ data }) => {
-        setTransactions(data.items);
-        setTotal(data.total);
+        // Tolerante ao formato antigo (array simples) durante uma janela de deploy em que o
+        // backend possa ainda não ter atualizado — evita ecrã em branco por "items" undefined.
+        const items = Array.isArray(data) ? data : (data.items ?? []);
+        setTransactions(items);
+        setTotal(Array.isArray(data) ? items.length : (data.total ?? items.length));
         setLoading(false);
       });
   }, [id, page, search, type, from, to, refreshKey]);
