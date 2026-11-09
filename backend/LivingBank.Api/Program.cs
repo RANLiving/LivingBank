@@ -138,6 +138,17 @@ else
     app.UseHsts();
 }
 
+// IIS, quando a API corre como aplicação "/api", separa o PathBase do caminho e os
+// controladores (api/...) deixam de encontrar a rota. Volta a juntar os dois; no Render
+// o PathBase vem vazio, por isso não tem efeito.
+app.Use((context, next) =>
+{
+    context.Request.Path = context.Request.PathBase + context.Request.Path;
+    context.Request.PathBase = PathString.Empty;
+    return next();
+});
+app.UseRouting();
+
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
 
